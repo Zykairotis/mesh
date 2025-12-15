@@ -104,7 +104,6 @@ export type ConnectionEntity = z.infer<typeof ConnectionEntitySchema>;
  * Input schema for creating connections
  */
 export const ConnectionCreateDataSchema = ConnectionEntitySchema.omit({
-  id: true,
   created_at: true,
   updated_at: true,
   created_by: true,
@@ -114,6 +113,7 @@ export const ConnectionCreateDataSchema = ConnectionEntitySchema.omit({
   bindings: true,
   status: true,
 }).partial({
+  id: true,
   description: true,
   icon: true,
   app_name: true,

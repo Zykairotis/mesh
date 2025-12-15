@@ -152,7 +152,6 @@ export default function StoreAppDetail() {
 
   // Track active tab - initially "readme"
   const [activeTabId, setActiveTabId] = useState<string>("readme");
-  const [isInstalling, setIsInstalling] = useState(false);
 
   const connectionsCollection = useConnectionsCollection();
   const allConnections = useConnections();
@@ -404,28 +403,16 @@ export default function StoreAppDetail() {
       ? `${connectionData.title} v${versionNumber}${isLatest ? " (LATEST)" : ""}`
       : connectionData.title;
 
-    setIsInstalling(true);
-    try {
-      const tx = connectionsCollection.insert(connectionData);
-      await tx.isPersisted.promise;
+    const tx = connectionsCollection.insert(connectionData);
+    toast.success(`${titleWithVersion} installed successfully`);
+    navigate({
+      to: "/$org/mcps/$connectionId",
+      params: { org: org.slug, connectionId: connectionData.id },
+    });
 
-      toast.success(`${titleWithVersion} installed successfully`);
-
-      // Use the deterministic ID to directly look up the connection
-      const newConnection = connectionsCollection.get(connectionData.id);
-
-      if (newConnection?.id && org) {
-        navigate({
-          to: "/$org/mcps/$connectionId",
-          params: { org: org.slug, connectionId: newConnection.id },
-        });
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      toast.error(`Failed to install app: ${message}`);
-    } finally {
-      setIsInstalling(false);
-    }
+    tx.isPersisted.promise.catch((err) => {
+      toast.error(`Failed to install app: ${err.message}`);
+    });
   };
 
   const handleBackClick = () => {
@@ -480,7 +467,6 @@ export default function StoreAppDetail() {
               itemVersions={
                 allVersions.length > 0 ? allVersions : [selectedItem]
               }
-              isInstalling={isInstalling}
               onInstall={handleInstall}
               canInstall={canInstall}
             />

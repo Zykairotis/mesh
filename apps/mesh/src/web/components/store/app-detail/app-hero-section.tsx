@@ -1,14 +1,12 @@
 import type { RegistryItem } from "@/web/components/store/registry-items-section";
 import { Button } from "@deco/ui/components/button.tsx";
 import { Icon } from "@deco/ui/components/icon.tsx";
-import { Loader2 } from "lucide-react";
 import { useState, useRef } from "react";
 import type { AppData } from "./types";
 
 interface AppHeroSectionProps {
   data: AppData;
   itemVersions: RegistryItem[];
-  isInstalling: boolean;
   onInstall: (versionIndex?: number) => void;
   canInstall?: boolean;
 }
@@ -16,7 +14,6 @@ interface AppHeroSectionProps {
 export function AppHeroSection({
   data,
   itemVersions,
-  isInstalling,
   onInstall,
   canInstall = true,
 }: AppHeroSectionProps) {
@@ -97,24 +94,14 @@ export function AppHeroSection({
                 <Button
                   variant="brand"
                   onClick={() => setShowVersions(!showVersions)}
-                  disabled={isInstalling}
                   className="shrink-0"
                 >
-                  {isInstalling ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      Installing...
-                    </>
-                  ) : (
-                    <>
-                      <Icon name="add" size={20} />
-                      Install App
-                      <Icon
-                        name={showVersions ? "expand_less" : "expand_more"}
-                        size={16}
-                      />
-                    </>
-                  )}
+                  <Icon name="add" size={20} />
+                  Install App
+                  <Icon
+                    name={showVersions ? "expand_less" : "expand_more"}
+                    size={16}
+                  />
                 </Button>
 
                 {showVersions && (
@@ -161,20 +148,11 @@ export function AppHeroSection({
               <Button
                 variant="brand"
                 onClick={() => onInstall()}
-                disabled={isInstalling || itemVersions.length === 0}
+                disabled={itemVersions.length === 0}
                 className="shrink-0"
               >
-                {isInstalling ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Installing...
-                  </>
-                ) : (
-                  <>
-                    <Icon name="add" size={20} />
-                    Install App
-                  </>
-                )}
+                <Icon name="add" size={20} />
+                Install App
               </Button>
             )}
           </div>

@@ -12,6 +12,7 @@ import {
 } from "@/web/utils/constants";
 import { getGitHubAvatarUrl } from "@/web/utils/github-icon";
 import { getConnectionTypeLabel } from "@/web/utils/registry-utils";
+import { generatePrefixedId } from "@/shared/utils/generate-id";
 
 /**
  * Extract connection data from a registry item for installation
@@ -91,7 +92,7 @@ export function extractConnectionData(
     : null;
 
   return {
-    id: crypto.randomUUID(),
+    id: generatePrefixedId("conn"),
     title,
     description,
     icon,
@@ -99,7 +100,7 @@ export function extractConnectionData(
     app_id: meshMeta?.id || item.id || null,
     connection_type: connectionType,
     connection_url: remote?.url || "",
-    connection_token: null,
+    connection_token: null as string | null,
     connection_headers: null,
     oauth_config: oauthConfig,
     configuration_state: configState ?? null,

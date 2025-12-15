@@ -24,10 +24,12 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useMcp } from "use-mcp/react";
+import { normalizeUrl } from "@/web/utils/normalize-url";
 import { PinToSidebarButton } from "../pin-to-sidebar-button";
 import { ViewActions, ViewLayout } from "./layout";
+import { OAuthAuthenticationState } from "./connection/oauth-authentication-state";
+import { useIsMCPAuthenticated } from "@/web/hooks/use-oauth-token-validation";
 
-// Helper to normalize URL for MCP
 export interface ToolDetailsViewProps {
   itemId: string;
   onBack: () => void;
@@ -63,17 +65,32 @@ export function ToolDetailsView({
   } | null>(null);
   const [viewMode, setViewMode] = useState<"json" | "view">("json");
 
-  // Use proxy URL when connection has a token (OAuth completed)
-  // Use normalizedUrl directly when no token (OAuth flow needs direct access)
+  const mcpOriginalUrl = connection?.connection_url
+    ? normalizeUrl(connection.connection_url)
+    : "";
   const mcpProxyUrl = new URL(`/mcp/${connectionId}`, window.location.origin);
 
-  // Initialize MCP client
+  const isMCPAuthenticated = useIsMCPAuthenticated({
+    url: mcpOriginalUrl,
+    token: connection?.connection_token ?? null,
+  });
+
+  if (!isMCPAuthenticated) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <OAuthAuthenticationState
+          onAuthenticate={() => onBack()}
+          buttonText="Go back"
+        />
+      </div>
+    );
+  }
+
   const mcp = useMcp({
     url: mcpProxyUrl.href,
     clientName: "MCP Tool Inspector",
     clientUri: window.location.origin,
-    autoReconnect: true,
-    autoRetry: 5000,
+    autoReconnect: false,
   });
 
   // oxlint-disable-next-line ban-use-effect/ban-use-effect
@@ -270,25 +287,6 @@ export function ToolDetailsView({
             </div>
 
             <div className="p-4 space-y-4">
-              {(mcp.state === "pending_auth" ||
-                (!connection.connection_token && mcp.state === "failed")) && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Authorization Required</AlertTitle>
-                  <AlertDescription>
-                    This tool requires authorization. Please{" "}
-                    <Button
-                      variant="link"
-                      className="p-0 h-auto font-normal underline text-destructive"
-                      onClick={onBack}
-                    >
-                      go back
-                    </Button>{" "}
-                    and authorize the connection in the inspector.
-                  </AlertDescription>
-                </Alert>
-              )}
-
               <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
                 Arguments
               </div>

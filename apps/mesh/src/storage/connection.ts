@@ -6,7 +6,6 @@
  */
 
 import type { Kysely, Insertable, Updateable } from "kysely";
-import { nanoid } from "nanoid";
 import type { CredentialVault } from "../encryption/credential-vault";
 import type { ConnectionStoragePort } from "./ports";
 import type { Database } from "./types";
@@ -15,6 +14,7 @@ import type {
   OAuthConfig,
   ToolDefinition,
 } from "../tools/connection/schema";
+import { generatePrefixedId } from "@/shared/utils/generate-id";
 
 /** JSON fields that need serialization/deserialization */
 const JSON_FIELDS = [
@@ -57,8 +57,14 @@ export class ConnectionStorage implements ConnectionStoragePort {
   ) {}
 
   async create(data: Partial<ConnectionEntity>): Promise<ConnectionEntity> {
-    const id = `conn_${nanoid()}`;
+    const id = data.id ?? generatePrefixedId("conn");
     const now = new Date().toISOString();
+
+    const existing = await this.findById(id);
+
+    if (existing) {
+      return this.update(id, data);
+    }
 
     const serialized = await this.serializeConnection({
       ...data,
