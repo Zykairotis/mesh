@@ -349,8 +349,8 @@ const toolsFor = <TSchema extends z.ZodTypeAny = never>({
             outputSchema: OnEventsOutputSchema,
             execute: async (input) => {
               const env = input.runtimeContext.env;
-              // Get state from env - it should have the binding values
-              const state = env as z.infer<TSchema>;
+              // Get state from MESH_REQUEST_CONTEXT - this has the binding values
+              const state = env.MESH_REQUEST_CONTEXT?.state as z.infer<TSchema>;
               return Event.execute(
                 events.handlers!,
                 input.context.events,

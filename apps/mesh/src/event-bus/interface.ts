@@ -202,7 +202,7 @@ export interface IEventBus {
   /**
    * Stop the background worker
    */
-  stop(): void;
+  stop(): void | Promise<void>;
 
   /**
    * Check if the worker is running

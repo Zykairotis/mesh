@@ -32,6 +32,9 @@ type Variables = {
   meshContext: MeshContext;
 };
 
+// Track current event bus instance for cleanup during HMR
+let currentEventBus: EventBus | null = null;
+
 // Create serializer for Prometheus text format (shared across instances)
 const prometheusSerializer = new PrometheusSerializer();
 
@@ -74,6 +77,16 @@ export interface CreateAppOptions {
 export function createApp(options: CreateAppOptions = {}) {
   const database = options.database ?? getDb();
 
+  // Stop any existing event bus worker (cleanup during HMR)
+  if (currentEventBus && currentEventBus.isRunning()) {
+    console.log("[EventBus] Stopping previous worker (HMR cleanup)");
+    // Fire and forget - don't block app creation
+    // The stop is mostly synchronous, async part is just UNLISTEN cleanup
+    Promise.resolve(currentEventBus.stop()).catch((error) => {
+      console.error("[EventBus] Error stopping previous worker:", error);
+    });
+  }
+
   // Create event bus with a lazy context getter
   // The notify function needs a context, but the context needs the event bus
   // We resolve this by having notify create its own system context
@@ -87,6 +100,9 @@ export function createApp(options: CreateAppOptions = {}) {
     // EventBus uses the full MeshDatabase (includes Pool for PostgreSQL)
     eventBus = createEventBus(database);
   }
+
+  // Track for cleanup during HMR
+  currentEventBus = eventBus;
 
   const app = new Hono<{ Variables: Variables }>();
 

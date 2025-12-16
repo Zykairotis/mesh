@@ -206,16 +206,22 @@ export class EventBus implements IEventBus {
     }
   }
 
-  stop(): void {
+  async stop(): Promise<void> {
+    if (!this.running) return;
+
     this.running = false;
     this.worker.stop();
 
     // Stop notify strategy if available
     if (this.notifyStrategy) {
-      this.notifyStrategy.stop().catch((error) => {
+      try {
+        await this.notifyStrategy.stop();
+      } catch (error) {
         console.error("[EventBus] Error stopping notify strategy:", error);
-      });
+      }
     }
+
+    console.log("[EventBus] Stopped");
   }
 
   isRunning(): boolean {

@@ -114,7 +114,6 @@ export class EventBusWorker {
     }
 
     this.running = true;
-    console.log("[EventBus] Worker started");
   }
 
   /**
