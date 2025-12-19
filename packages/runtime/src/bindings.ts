@@ -87,10 +87,8 @@ export const isBinding = (v: unknown): v is Binding => {
   return (
     typeof v === "object" &&
     v !== null &&
-    "__type" in v &&
-    typeof v.__type === "string" &&
-    "value" in v &&
-    typeof v.value === "string"
+    typeof (v as { __type: string }).__type === "string" &&
+    typeof (v as { value: string }).value === "string"
   );
 };
 
@@ -172,9 +170,9 @@ export const initializeBindings = <
   TBindings extends BindingRegistry = BindingRegistry,
 >(
   ctx: RequestContext,
-): void => {
+): ResolvedBindings<T, TBindings> => {
   // resolves the state in-place
-  traverseAndReplace(ctx.state, ctx) as ResolvedBindings<T, TBindings>;
+  return traverseAndReplace(ctx.state, ctx) as ResolvedBindings<T, TBindings>;
 };
 
 interface DefaultRegistry extends BindingRegistry {

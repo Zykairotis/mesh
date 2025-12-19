@@ -11,7 +11,9 @@
  * - Supports StreamableHTTP transport
  */
 
+import { once } from "@/common";
 import { getMonitoringConfig } from "@/core/config";
+import { prop } from "@/tools/connection/json-path";
 import { ConnectionEntity } from "@/tools/connection/schema";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -35,8 +37,6 @@ import {
   createProxyStreamableMonitoringMiddleware,
   ProxyMonitoringMiddlewareParams,
 } from "./proxy-monitoring";
-import { prop } from "@/tools/connection/json-path";
-import { once } from "@/common";
 
 // Define Hono variables type
 type Variables = {

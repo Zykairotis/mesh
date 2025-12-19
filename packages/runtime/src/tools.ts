@@ -363,7 +363,6 @@ const toolsFor = <TSchema extends z.ZodTypeAny = never>({
           stateSchema: jsonSchema,
           scopes: [
             ...((scopes as string[]) ?? []),
-            ...Event.scopes(events?.handlers ?? {}),
             ...(events ? [`${busProp}::EVENT_SYNC_SUBSCRIPTIONS`] : []),
           ],
         });

@@ -185,28 +185,6 @@ const getEventTypesForBinding = <TEnv, TSchema extends z.ZodTypeAny>(
 };
 
 /**
- * Get scopes from event handlers for subscription
- */
-const scopesFromEvents = <TEnv, TSchema extends z.ZodTypeAny = never>(
-  handlers: EventHandlers<TEnv, TSchema>,
-): string[] => {
-  if (isGlobalHandler<TEnv>(handlers)) {
-    // Global handler - scopes are based on explicit events array
-    // Note: "*" binding means all bindings
-    return handlers.events.map((event) => `*::event@${event}`);
-  }
-
-  const scopes: string[] = [];
-  for (const binding of getBindingKeys(handlers)) {
-    const eventTypes = getEventTypesForBinding(handlers, binding);
-    for (const eventType of eventTypes) {
-      scopes.push(`${binding}::event@${eventType}`);
-    }
-  }
-  return scopes;
-};
-
-/**
  * Get subscriptions from event handlers and state
  * Returns flat array of { eventType, publisher } for EVENT_SYNC_SUBSCRIPTIONS
  */
@@ -490,6 +468,5 @@ const executeEventHandlers = async <TEnv, TSchema extends z.ZodTypeAny>(
  */
 export const Event = {
   subscriptions: eventsSubscriptions,
-  scopes: scopesFromEvents,
   execute: executeEventHandlers,
 };

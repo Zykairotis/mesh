@@ -35,20 +35,6 @@ export const EVENT_SYNC_SUBSCRIPTIONS = defineTool({
       );
     }
 
-    // Check permissions for each publisher
-    for (const sub of input.subscriptions) {
-      if (sub.publisher) {
-        const hasPermission = await ctx.boundAuth.hasPermission({
-          [sub.publisher]: [`event@${sub.eventType}`],
-        });
-        if (!hasPermission) {
-          throw new Error(
-            `Not authorized to subscribe to events from publisher '${sub.publisher}' for event type '${sub.eventType}'.`,
-          );
-        }
-      }
-    }
-
     // Sync the subscriptions
     const result = await ctx.eventBus.syncSubscriptions(organization.id, {
       connectionId,

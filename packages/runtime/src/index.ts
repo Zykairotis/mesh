@@ -214,7 +214,7 @@ export const withBindings = <TEnv>({
   }
 
   env.MESH_REQUEST_CONTEXT = context;
-  initializeBindings(context);
+  context.state = initializeBindings(context);
 
   withDefaultBindings({
     env,
