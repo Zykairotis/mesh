@@ -20,6 +20,7 @@ import {
   type MonitoringLogsResponse as SharedMonitoringLogsResponse,
 } from "@/web/components/monitoring/monitoring-stats-row.tsx";
 import { useConnections } from "@/web/hooks/collections/use-connection";
+import { useMembers } from "@/web/hooks/use-members";
 import { useToolCall } from "@/web/hooks/use-tool-call";
 import { useProjectContext } from "@/web/providers/project-context-provider";
 import { Badge } from "@deco/ui/components/badge.tsx";
@@ -61,6 +62,11 @@ interface MonitoringLog extends SharedMonitoringLog {
   requestId: string;
   input: Record<string, unknown> | null;
   output: Record<string, unknown> | null;
+}
+
+interface EnrichedMonitoringLog extends MonitoringLog {
+  userName: string;
+  userImage: string | undefined;
 }
 
 interface MonitoringLogsResponse
@@ -415,8 +421,21 @@ function MonitoringLogsTableContent({
     if (node) observerRef.current.observe(node);
   };
 
+  const { data: membersData } = useMembers();
+  const members = membersData?.data?.members ?? [];
+  const userMap = new Map(members.map((m) => [m.userId, m.user]));
+
+  const enrichedLogs: EnrichedMonitoringLog[] = logs.map((log) => {
+    const user = userMap.get(log.userId ?? "");
+    return {
+      ...log,
+      userName: user?.name ?? log.userId ?? "Unknown",
+      userImage: user?.image,
+    };
+  });
+
   // Filter logs by search query and multiple connections (client-side)
-  let filteredLogs = logs;
+  let filteredLogs = enrichedLogs;
 
   // Filter by multiple connection IDs (if more than one selected)
   if (connectionIds.length > 1) {
@@ -451,7 +470,7 @@ function MonitoringLogsTableContent({
   // Get connection info for icons
   const connectionMap = new Map(connections.map((c) => [c.id, c]));
 
-  const renderLogRow = (log: MonitoringLog, index: number) => {
+  const renderLogRow = (log: EnrichedMonitoringLog, index: number) => {
     const isLastLog = index === filteredLogs.length - 1;
     const isFirstLog = index === 0;
     const connection = connectionMap.get(log.connectionId);
@@ -503,6 +522,11 @@ function MonitoringLogsTableContent({
             <div className="text-xs text-muted-foreground truncate block">
               {log.connectionTitle}
             </div>
+          </div>
+
+          {/* User Name */}
+          <div className="w-20 md:w-24 px-2 md:px-3 text-xs text-muted-foreground">
+            {log.userName}
           </div>
 
           {/* Date */}
@@ -564,11 +588,16 @@ function MonitoringLogsTableContent({
             <div className="w-10 md:w-12 px-2 md:px-4" />
 
             {/* Connection Icon Column */}
-            <div className="w-12 md:w-16 px-2 md:px-4" />
+            <div className="w-5" />
 
             {/* Tool/Connection Column */}
             <div className="flex-1 pr-2 md:pr-4 text-xs font-mono font-normal text-muted-foreground uppercase tracking-wide">
               Tool / MCP Server
+            </div>
+
+            {/* User name Column */}
+            <div className="w-20 md:w-24 px-2 md:px-3 text-xs font-mono font-normal text-muted-foreground uppercase tracking-wide">
+              User Name
             </div>
 
             {/* Date Column */}
