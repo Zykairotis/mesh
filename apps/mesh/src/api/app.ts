@@ -198,13 +198,35 @@ export function createApp(options: CreateAppOptions = {}) {
       return c.json({ error: "Connection not found" }, 404);
     }
 
-    // Get origin auth server
-    const originUrl = new URL(connection.connection_url);
-    originUrl.pathname = "/.well-known/oauth-protected-resource";
-    const resourceRes = await fetch(originUrl.toString(), {
+    // Get origin auth server - try both well-known URL formats
+    // Format 1: {resource}/.well-known/oauth-protected-resource (resource-relative)
+    // Format 2: /.well-known/oauth-protected-resource{resource-path} (well-known prefix)
+    // Per RFC 9728: strip trailing slash before inserting /.well-known/
+    const connUrl = new URL(connection.connection_url);
+    let resourcePath = connUrl.pathname;
+    if (resourcePath.endsWith("/")) {
+      resourcePath = resourcePath.slice(0, -1);
+    }
+
+    // Try format 1 first (most common)
+    const format1Url = new URL(connection.connection_url);
+    format1Url.pathname = `${resourcePath}/.well-known/oauth-protected-resource`;
+
+    let resourceRes = await fetch(format1Url.toString(), {
       method: "GET",
       headers: { Accept: "application/json" },
     });
+
+    // If format 1 fails, try format 2 (Smithery-style)
+    if (!resourceRes.ok) {
+      const format2Url = new URL(connection.connection_url);
+      format2Url.pathname = `/.well-known/oauth-protected-resource${resourcePath}`;
+      resourceRes = await fetch(format2Url.toString(), {
+        method: "GET",
+        headers: { Accept: "application/json" },
+      });
+    }
+
     if (!resourceRes.ok) {
       return c.json({ error: "Failed to get resource metadata" }, 502);
     }
