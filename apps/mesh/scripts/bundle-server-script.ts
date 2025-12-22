@@ -344,6 +344,26 @@ async function buildCliScript(packagesToExternalize: Set<string>) {
   console.log(`✅ cli.js built successfully at ${cliOutputPath}`);
 }
 
+async function copyRootReadme() {
+  console.log("📄 Copying root README.md...");
+
+  const readmeSourcePath = join(WORKSPACE_ROOT, "README.md");
+  // Copy to parent dist folder so it's at dist/README.md (alongside dist/server and dist/client)
+  const readmeOutputPath = join(OUTPUT_DIR, "..", "README.md");
+
+  if (!existsSync(readmeSourcePath)) {
+    console.warn("⚠️  Root README.md not found, skipping...");
+    return;
+  }
+
+  try {
+    await cp(readmeSourcePath, readmeOutputPath);
+    console.log(`✅ README.md copied to ${readmeOutputPath}`);
+  } catch (error) {
+    console.warn(`⚠️  Failed to copy README.md: ${error}`);
+  }
+}
+
 async function main() {
   // Prune node_modules to only include required dependencies for both scripts
   const packagesToExternalize = await pruneNodeModules();
@@ -353,12 +373,16 @@ async function main() {
   await buildServerScript(packagesToExternalize);
   await buildCliScript(packagesToExternalize);
 
+  // Copy root README.md to dist folder
+  await copyRootReadme();
+
   console.log("\n🎉 Build completed successfully!");
   console.log(`📦 Output directory: ${OUTPUT_DIR}`);
   console.log(`   - migrate.js`);
   console.log(`   - server.js`);
   console.log(`   - cli.js`);
   console.log(`   - node_modules/`);
+  console.log(`   - ../README.md`);
 }
 
 main().catch((error) => {
