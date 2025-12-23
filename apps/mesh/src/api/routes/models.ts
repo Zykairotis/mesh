@@ -13,6 +13,7 @@ import { z } from "zod";
 import type { MeshContext } from "../../core/mesh-context";
 import type { ConnectionEntity } from "../../tools/connection/schema";
 import { createLLMProvider } from "../llm-provider";
+import { fixProtocol } from "./oauth-proxy";
 
 // Default values
 const DEFAULT_MAX_TOKENS = 4096;
@@ -92,7 +93,7 @@ function createGatewayTransport(
   gatewayId: string,
 ): StreamableHTTPClientTransport {
   // Build base URL for gateway
-  const url = new URL(req.url);
+  const url = fixProtocol(new URL(req.url));
   const baseUrl = `${url.protocol}//${url.host}`;
 
   // Forward cookie and authorization headers

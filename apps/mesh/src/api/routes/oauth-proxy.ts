@@ -138,7 +138,8 @@ async function ensureContext(c: {
 // Protected Resource Metadata Proxy
 // ============================================================================
 
-const forceHttps = (url: URL) => {
+// force https if not localhost
+export const fixProtocol = (url: URL) => {
   const isLocal = url.hostname === "localhost" || url.hostname === "127.0.0.1";
   if (!isLocal) {
     // force http if not local
@@ -182,7 +183,7 @@ const protectedResourceMetadataHandler = async (c: {
     const data = (await response.json()) as Record<string, unknown>;
 
     // Build our proxy resource URL (matches the MCP proxy endpoint)
-    const requestUrl = forceHttps(new URL(c.req.url));
+    const requestUrl = fixProtocol(new URL(c.req.url));
     const proxyResourceUrl = `${requestUrl.origin}/mcp/${connectionId}`;
 
     // Rewrite authorization_servers to point to our proxy
@@ -340,7 +341,7 @@ app.get(
 
       // Parse and rewrite URLs to point to our proxy
       const data = (await response.json()) as Record<string, unknown>;
-      const requestUrl = forceHttps(new URL(c.req.url));
+      const requestUrl = fixProtocol(new URL(c.req.url));
       const proxyBase = `${requestUrl.origin}/oauth-proxy/${connectionId}`;
 
       // Rewrite OAuth endpoint URLs to go through our proxy
