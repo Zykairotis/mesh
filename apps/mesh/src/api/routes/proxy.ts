@@ -384,6 +384,8 @@ async function createMCPProxyDoNotUseDirectly(
             span.end();
 
             throw error;
+          } finally {
+            await client.close();
           }
         },
       );
