@@ -10,7 +10,7 @@ import { Input } from "@deco/ui/components/input.tsx";
 import { Textarea } from "@deco/ui/components/textarea.tsx";
 import { Loading01 } from "@untitledui/icons";
 import { cn } from "@deco/ui/lib/utils.ts";
-import { useParams } from "@tanstack/react-router";
+import { useParams, useSearch } from "@tanstack/react-router";
 import {
   AlertCircle,
   Box,
@@ -96,10 +96,49 @@ function ToolDetailsAuthenticated({
   mcpProxyUrl: URL;
   onBack: () => void;
 }) {
+  // Read replayId from search params to check for prefilled input
+  const { replayId } = useSearch({ strict: false }) as { replayId?: string };
+
+  // Read replay input from sessionStorage (one-time, on mount)
+  const replayInput = (() => {
+    if (!replayId) return null;
+    const key = `replay-${replayId}`;
+    const stored = sessionStorage.getItem(key);
+    if (!stored) return null;
+    // Clear after reading (one-time use)
+    sessionStorage.removeItem(key);
+    try {
+      return JSON.parse(stored) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  })();
+
+  // Convert replay input to form-friendly format (stringify objects/arrays)
+  const replayInputForForm = (() => {
+    if (!replayInput) return null;
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(replayInput)) {
+      // Stringify objects and arrays for textarea/input fields
+      if (value !== null && typeof value === "object") {
+        result[key] = JSON.stringify(value, null, 2);
+      } else {
+        result[key] = value;
+      }
+    }
+    return result;
+  })();
+
   // Store only user edits; defaults are derived from the schema (no effect-driven initialization).
-  const [editedParams, setEditedParams] = useState<Record<string, unknown>>({});
+  // If replay input exists, use it as initial edited params (with objects/arrays stringified).
+  const [editedParams, setEditedParams] = useState<Record<string, unknown>>(
+    replayInputForForm ?? {},
+  );
   // For tools without `inputSchema.properties`, allow free-form JSON editing (including temporarily invalid JSON while typing).
-  const [rawJsonText, setRawJsonText] = useState("{}");
+  // If replay input exists, stringify it for the raw JSON editor.
+  const [rawJsonText, setRawJsonText] = useState(
+    replayInput ? JSON.stringify(replayInput, null, 2) : "{}",
+  );
   const [executionResult, setExecutionResult] = useState<Record<
     string,
     unknown

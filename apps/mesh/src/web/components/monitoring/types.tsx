@@ -4,8 +4,15 @@
  * Contains shared types and the ExpandedLogContent component used by LogRow.
  */
 
+import { useProjectContext } from "@/web/providers/project-context-provider";
 import { Button } from "@deco/ui/components/button.tsx";
-import { Download01, Check, Copy01 } from "@untitledui/icons";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@deco/ui/components/tooltip.tsx";
+import { Download01, Check, Copy01, Play } from "@untitledui/icons";
+import { useNavigate } from "@tanstack/react-router";
 import { lazy, Suspense, useState } from "react";
 import type { SyntaxHighlighterProps } from "react-syntax-highlighter";
 import { toast } from "sonner";
@@ -207,6 +214,8 @@ interface ExpandedLogContentProps {
 export function ExpandedLogContent({ log }: ExpandedLogContentProps) {
   const [copiedInput, setCopiedInput] = useState(false);
   const [copiedOutput, setCopiedOutput] = useState(false);
+  const navigate = useNavigate();
+  const { org } = useProjectContext();
 
   // Process JSON for display (React 19 compiler handles optimization)
   const inputJson = truncateJsonForDisplay(log.input);
@@ -242,6 +251,24 @@ export function ExpandedLogContent({ log }: ExpandedLogContentProps) {
     a.download = `${log.toolName}-${type}-${log.id}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleReplay = () => {
+    // Generate unique replay ID
+    const replayId = crypto.randomUUID();
+    // Store input in sessionStorage
+    sessionStorage.setItem(`replay-${replayId}`, JSON.stringify(log.input));
+    // Navigate to tool page with replayId
+    navigate({
+      to: "/$org/mcps/$connectionId/$collectionName/$itemId",
+      params: {
+        org: org.slug,
+        connectionId: log.connectionId,
+        collectionName: "tools",
+        itemId: encodeURIComponent(log.toolName),
+      },
+      search: { replayId },
+    });
   };
 
   return (
@@ -290,16 +317,37 @@ export function ExpandedLogContent({ log }: ExpandedLogContentProps) {
                 )}
               </div>
               <div className="flex items-center gap-1">
+                {log.input && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={handleReplay}
+                        aria-label="Replay tool call"
+                        className="text-muted-foreground hover:text-foreground rounded-lg h-8 w-8"
+                      >
+                        <Play size={14} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Replay tool call</TooltipContent>
+                  </Tooltip>
+                )}
                 {inputJson.isTruncated && (
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => handleDownload("input")}
-                    aria-label="Download full input"
-                    className="text-muted-foreground hover:text-foreground rounded-lg h-8 w-8"
-                  >
-                    <Download01 size={14} />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleDownload("input")}
+                        aria-label="Download full input"
+                        className="text-muted-foreground hover:text-foreground rounded-lg h-8 w-8"
+                      >
+                        <Download01 size={14} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Download full input</TooltipContent>
+                  </Tooltip>
                 )}
                 <Button
                   size="icon"
@@ -332,15 +380,20 @@ export function ExpandedLogContent({ log }: ExpandedLogContentProps) {
               </div>
               <div className="flex items-center gap-1">
                 {outputJson.isTruncated && (
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => handleDownload("output")}
-                    aria-label="Download full output"
-                    className="text-muted-foreground hover:text-foreground rounded-lg h-8 w-8"
-                  >
-                    <Download01 size={14} />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleDownload("output")}
+                        aria-label="Download full output"
+                        className="text-muted-foreground hover:text-foreground rounded-lg h-8 w-8"
+                      >
+                        <Download01 size={14} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Download full output</TooltipContent>
+                  </Tooltip>
                 )}
                 <Button
                   size="icon"
