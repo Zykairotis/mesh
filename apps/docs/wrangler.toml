@@ -12,7 +12,6 @@ custom_domain = true
 [assets]
 directory = "./dist/client"
 binding = "ASSETS"
-run_worker_first = true
 
 [deco]
 workspace = "deco.cx"
