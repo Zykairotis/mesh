@@ -10,7 +10,7 @@ interface Env {
 const runtime = withRuntime<Env>({
   fetch: async (req, env) => {
     const url = new URL(req.url);
-    if (url.pathname === "/" || url.pathname === "") {
+    if (url.pathname === "/" || url.pathname === "" || url.pathname === "/en") {
       return Response.redirect(new URL("/en/introduction", req.url), 302);
     }
 
