@@ -418,7 +418,7 @@ const toolsFor = <TSchema extends z.ZodTypeAny = never>({
               if (events && state && bus) {
                 // Sync subscriptions - always call to handle deletions too
                 const subscriptions = Event.subscriptions(
-                  events?.handlers ?? {},
+                  events?.handlers ?? ({} as Record<string, never>),
                   state,
                 );
                 await bus.EVENT_SYNC_SUBSCRIPTIONS({ subscriptions });
