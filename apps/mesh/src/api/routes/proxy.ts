@@ -23,6 +23,7 @@ import {
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import {
   CallToolRequestSchema,
   GetPromptRequestSchema,
@@ -38,7 +39,6 @@ import {
   type ListPromptsResult,
   type ListResourcesResult,
   type ListResourceTemplatesResult,
-  type ListToolsRequest,
   type ListToolsResult,
   type ReadResourceRequest,
   type ReadResourceResult,
@@ -48,7 +48,6 @@ import { Hono } from "hono";
 import { issueMeshToken } from "../../auth/jwt";
 import { AccessControl } from "../../core/access-control";
 import type { MeshContext } from "../../core/mesh-context";
-import { HttpServerTransport } from "../http-server-transport";
 import { compose } from "../utils/compose";
 import { handleAuthError } from "./oauth-proxy";
 import {
@@ -475,12 +474,7 @@ async function createMCPProxyDoNotUseDirectly(
   // List resources from downstream connection
   const listResources = async (): Promise<ListResourcesResult> => {
     const client = await createClient();
-    if (client.getServerCapabilities()?.resources) {
-      return await client.listResources();
-    }
-    return {
-      resources: [],
-    };
+    return await client.listResources();
   };
 
   // Read a specific resource from downstream connection
@@ -495,23 +489,13 @@ async function createMCPProxyDoNotUseDirectly(
   const listResourceTemplates =
     async (): Promise<ListResourceTemplatesResult> => {
       const client = await createClient();
-      if (client.getServerCapabilities()?.resources) {
-        return await client.listResourceTemplates();
-      }
-      return {
-        resourceTemplates: [],
-      };
+      return await client.listResourceTemplates();
     };
 
   // List prompts from downstream connection
   const listPrompts = async (): Promise<ListPromptsResult> => {
     const client = await createClient();
-    if (client.getServerCapabilities()?.prompts) {
-      return await client.listPrompts();
-    }
-    return {
-      prompts: [],
-    };
+    return await client.listPrompts();
   };
 
   // Get a specific prompt from downstream connection
@@ -659,8 +643,8 @@ async function createMCPProxyDoNotUseDirectly(
       },
     );
 
-    // Create transport (uses HttpServerTransport for fetch Request/Response)
-    const transport = new HttpServerTransport({
+    // Create transport (web-standard Streamable HTTP for fetch Request/Response)
+    const transport = new WebStandardStreamableHTTPServerTransport({
       enableJsonResponse:
         req.headers.get("Accept")?.includes("application/json") ?? false,
     });
@@ -669,66 +653,33 @@ async function createMCPProxyDoNotUseDirectly(
     await server.connect(transport);
 
     // Tools handlers
-    server.server.setRequestHandler(
-      ListToolsRequestSchema,
-      async (_request: ListToolsRequest): Promise<ListToolsResult> => {
-        return await client.listTools();
-      },
+    server.server.setRequestHandler(ListToolsRequestSchema, () =>
+      client.listTools(),
     );
 
     // Set up call tool handler with middleware - reuses executeToolCall
     server.server.setRequestHandler(CallToolRequestSchema, executeToolCall);
 
     // Resources handlers
-    server.server.setRequestHandler(
-      ListResourcesRequestSchema,
-      async (): Promise<ListResourcesResult> => {
-        if (client.getServerCapabilities()?.resources) {
-          return await client.listResources();
-        }
-        return {
-          resources: [],
-        };
-      },
+    server.server.setRequestHandler(ListResourcesRequestSchema, () =>
+      client.listResources(),
     );
 
-    server.server.setRequestHandler(
-      ReadResourceRequestSchema,
-      async (request: ReadResourceRequest): Promise<ReadResourceResult> => {
-        return await client.readResource(request.params);
-      },
+    server.server.setRequestHandler(ReadResourceRequestSchema, (request) =>
+      client.readResource(request.params),
     );
 
-    server.server.setRequestHandler(
-      ListResourceTemplatesRequestSchema,
-      async (): Promise<ListResourceTemplatesResult> => {
-        if (client.getServerCapabilities()?.resources) {
-          return await client.listResourceTemplates();
-        }
-        return {
-          resourceTemplates: [],
-        };
-      },
+    server.server.setRequestHandler(ListResourceTemplatesRequestSchema, () =>
+      client.listResourceTemplates(),
     );
 
     // Prompts handlers
-    server.server.setRequestHandler(
-      ListPromptsRequestSchema,
-      async (): Promise<ListPromptsResult> => {
-        if (client.getServerCapabilities()?.prompts) {
-          return await client.listPrompts();
-        }
-        return {
-          prompts: [],
-        };
-      },
+    server.server.setRequestHandler(ListPromptsRequestSchema, () =>
+      client.listPrompts(),
     );
 
-    server.server.setRequestHandler(
-      GetPromptRequestSchema,
-      async (request: GetPromptRequest): Promise<GetPromptResult> => {
-        return await client.getPrompt(request.params);
-      },
+    server.server.setRequestHandler(GetPromptRequestSchema, (request) =>
+      client.getPrompt(request.params),
     );
 
     // Handle the incoming message

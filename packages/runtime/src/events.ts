@@ -3,7 +3,7 @@ import type {
   EventResult,
   OnEventsOutput,
 } from "@decocms/bindings";
-import z from "zod";
+import { z } from "zod";
 import { isBinding } from "./bindings.ts";
 
 // ============================================================================
@@ -195,7 +195,7 @@ const eventsSubscriptions = <TEnv, TSchema extends z.ZodTypeAny = never>(
   if (isGlobalHandler<TEnv>(handlers)) {
     // Global handler - subscribe to all bindings with the explicit events
     const subscriptions: EventSubscription[] = [];
-    for (const [, value] of Object.entries(state)) {
+    for (const [, value] of Object.entries(state as Record<string, unknown>)) {
       if (isBinding(value)) {
         for (const eventType of handlers.events) {
           subscriptions.push({
@@ -318,7 +318,7 @@ const mergeResults = (results: OnEventsOutput[]): OnEventsOutput => {
 const executeEventHandlers = async <TEnv, TSchema extends z.ZodTypeAny>(
   handlers: EventHandlers<TEnv, TSchema>,
   events: CloudEvent[],
-  env: z.infer<TSchema>,
+  env: TEnv,
   state: z.infer<TSchema>,
 ): Promise<OnEventsOutput> => {
   // Case 1: Global handler
@@ -383,7 +383,7 @@ const executeEventHandlers = async <TEnv, TSchema extends z.ZodTypeAny>(
     // Case 3: Per-event handlers
     const perEventHandlers = bindingHandler as Record<
       string,
-      PerEventHandler<z.infer<TSchema>>
+      PerEventHandler<TEnv>
     >;
     const eventsByType = groupEventsByType(sourceEvents);
 
@@ -400,7 +400,7 @@ const executeEventHandlers = async <TEnv, TSchema extends z.ZodTypeAny>(
       // - Always return success immediately
       if (eventType.startsWith("cron/")) {
         const cronHandler = eventHandler as unknown as (
-          env: z.infer<TSchema>,
+          env: TEnv,
         ) => Promise<void>;
 
         // Fire and forget - don't await, just log errors
