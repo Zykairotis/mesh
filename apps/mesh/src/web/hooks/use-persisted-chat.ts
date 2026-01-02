@@ -5,18 +5,18 @@
  * Used by both the agent chat panel and the side panel chat.
  */
 
-import { useChat as useAiChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import { useChat } from "@ai-sdk/react";
 import type { Metadata } from "@deco/ui/types/chat-metadata.ts";
+import { DefaultChatTransport, type UIMessage } from "ai";
+import type { ChatMessage } from "../components/chat/chat";
+import { useProjectContext } from "../providers/project-context-provider";
+import type { Message, Thread } from "../types/chat-threads";
 import {
   getThreadFromIndexedDB,
   useMessageActions,
   useThreadActions,
   useThreadMessages,
 } from "./use-chat-store";
-import { useProjectContext } from "../providers/project-context-provider";
-import type { Message, Thread } from "../types/chat-threads";
-import type { ChatMessage } from "../components/chat/chat";
 
 const DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant.";
 
@@ -50,6 +50,8 @@ export interface UsePersistedChatOptions {
   onCreateThread?: (thread: { id: string; title: string }) => void;
   /** Called when an error occurs */
   onError?: (error: Error) => void;
+  /** Called when a tool is invoked during chat */
+  onToolCall?: (event: { toolCall: { toolName: string } }) => void;
 }
 
 /**
@@ -84,7 +86,8 @@ export interface PersistedChatResult {
 export function usePersistedChat(
   options: UsePersistedChatOptions,
 ): PersistedChatResult {
-  const { threadId, systemPrompt, onCreateThread, onError } = options;
+  const { threadId, systemPrompt, onCreateThread, onError, onToolCall } =
+    options;
 
   const {
     org: { slug: orgSlug },
@@ -179,11 +182,12 @@ export function usePersistedChat(
   };
 
   // Initialize AI chat
-  const chat = useAiChat<UIMessage<Metadata>>({
+  const chat = useChat<UIMessage<Metadata>>({
     id: chatId,
     messages: allMessages,
     transport,
     onFinish,
+    onToolCall,
     onError: (error: Error) => {
       console.error("[chat] Chat error:", error);
       onError?.(error);
