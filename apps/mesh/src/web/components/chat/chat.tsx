@@ -10,7 +10,7 @@ import type {
   ReactNode,
   RefObject,
 } from "react";
-import { Children, isValidElement, useRef, useState } from "react";
+import { Children, isValidElement, useRef } from "react";
 import { toast } from "sonner";
 import { GatewaySelector } from "./gateway-selector";
 import { MessageAssistant } from "./message-assistant.tsx";
@@ -137,10 +137,12 @@ function ChatMessages({
   messages,
   status,
   minHeightOffset = 240,
+  onBranchFromMessage,
 }: {
   messages: ChatMessage[];
   status?: ChatStatus;
   minHeightOffset?: number;
+  onBranchFromMessage?: (messageId: string, messageText: string) => void;
 }) {
   const sentinelRef = useRef<HTMLDivElement>(null);
   useChatAutoScroll({ messageCount: messages.length, sentinelRef });
@@ -151,6 +153,7 @@ function ChatMessages({
         message.role === "user" ? (
           <MessageUser
             key={message.id}
+            onBranchFromMessage={onBranchFromMessage}
             message={message as UIMessage<Metadata>}
           />
         ) : message.role === "assistant" ? (
@@ -202,6 +205,8 @@ function ChatInput({
   placeholder,
   usageMessages,
   children,
+  value,
+  onValueChange,
 }: PropsWithChildren<{
   onSubmit: (text: string) => Promise<void>;
   onStop: () => void;
@@ -209,9 +214,9 @@ function ChatInput({
   isStreaming: boolean;
   placeholder: string;
   usageMessages?: ChatMessage[];
+  value?: string;
+  onValueChange?: (value: string) => void;
 }>) {
-  const [input, setInput] = useState("");
-
   const modelSelector = findChild(children, ChatInputModelSelector);
   const gatewaySelector = findChild(children, ChatInputGatewaySelector);
   const rest = filterChildren(children, [
@@ -221,13 +226,13 @@ function ChatInput({
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!input?.trim() || isStreaming) {
+    if (!value?.trim() || isStreaming) {
       return;
     }
-    const text = input.trim();
+    const text = value.trim();
     try {
       await onSubmit(text);
-      setInput("");
+      onValueChange?.("");
     } catch (error) {
       console.error("Failed to send message:", error);
       const message =
@@ -279,8 +284,8 @@ function ChatInput({
 
   return (
     <DecoChatInputV2
-      value={input}
-      onChange={setInput}
+      value={value ?? ""}
+      onChange={onValueChange ?? (() => {})}
       onSubmit={handleSubmit}
       onStop={onStop}
       disabled={disabled}
