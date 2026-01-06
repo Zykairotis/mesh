@@ -51,6 +51,7 @@ export function WorkflowEditorHeader({
     useWorkflowActions();
   const isDirty = useIsDirty();
   const selectedGatewayId = useSelectedGatewayId();
+  const trackingExecutionId = useTrackingExecutionId();
 
   return (
     <>
@@ -72,91 +73,93 @@ export function WorkflowEditorHeader({
         </div>
       </ViewTabs>
 
-      <ViewActions>
-        <PinToSidebarButton title={title} url={url} icon="workflow" />
+      {!trackingExecutionId && (
+        <ViewActions>
+          <PinToSidebarButton title={title} url={url} icon="workflow" />
 
-        <Suspense fallback={<Spinner size="xs" />}>
-          <GatewaySelector
-            selectedGatewayId={selectedGatewayId}
-            onGatewayChange={setSelectedGatewayId}
-            variant="bordered"
-            placeholder="Select gateway"
+          <Suspense fallback={<Spinner size="xs" />}>
+            <GatewaySelector
+              selectedGatewayId={selectedGatewayId ?? undefined}
+              onGatewayChange={setSelectedGatewayId}
+              variant="bordered"
+              placeholder="Select gateway"
+            />
+          </Suspense>
+
+          <ViewModeToggle<WorkflowViewMode>
+            value={viewMode}
+            onValueChange={setViewMode}
+            size="sm"
+            options={[
+              { value: "visual", icon: <GitBranch01 /> },
+              { value: "code", icon: <Code02 /> },
+            ]}
           />
-        </Suspense>
 
-        <ViewModeToggle<WorkflowViewMode>
-          value={viewMode}
-          onValueChange={setViewMode}
-          size="sm"
-          options={[
-            { value: "visual", icon: <GitBranch01 /> },
-            { value: "code", icon: <Code02 /> },
-          ]}
-        />
+          <TooltipProvider>
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <span className="inline-block">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="size-7 border border-input"
+                    onClick={resetToOriginalWorkflow}
+                    disabled={!isDirty}
+                    aria-label="Reset changes"
+                  >
+                    <FlipBackward size={14} />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Reset changes</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-        <TooltipProvider>
-          <Tooltip delayDuration={0}>
-            <TooltipTrigger asChild>
-              <span className="inline-block">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="size-7 border border-input"
-                  onClick={resetToOriginalWorkflow}
-                  disabled={!isDirty}
-                  aria-label="Reset changes"
-                >
-                  <FlipBackward size={14} />
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Reset changes</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <span className="inline-block">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="size-7 border border-input"
+                    onClick={onSave}
+                    disabled={!isDirty}
+                    aria-label="Save workflow"
+                  >
+                    <Save02 size={14} />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Save workflow</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-        <TooltipProvider>
-          <Tooltip delayDuration={0}>
-            <TooltipTrigger asChild>
-              <span className="inline-block">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="size-7 border border-input"
-                  onClick={onSave}
-                  disabled={!isDirty}
-                  aria-label="Save workflow"
-                >
-                  <Save02 size={14} />
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Save workflow</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <span className="inline-block">
+                  <Button
+                    variant={showExecutionsList ? "secondary" : "outline"}
+                    size="icon"
+                    className="size-7 border border-input"
+                    onClick={toggleExecutionsList}
+                    aria-label={showExecutionsList ? "Hide runs" : "Show runs"}
+                  >
+                    <ClockFastForward size={14} />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {showExecutionsList ? "Hide runs" : "Show runs"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-        <TooltipProvider>
-          <Tooltip delayDuration={0}>
-            <TooltipTrigger asChild>
-              <span className="inline-block">
-                <Button
-                  variant={showExecutionsList ? "secondary" : "outline"}
-                  size="icon"
-                  className="size-7 border border-input"
-                  onClick={toggleExecutionsList}
-                  aria-label={showExecutionsList ? "Hide runs" : "Show runs"}
-                >
-                  <ClockFastForward size={14} />
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              {showExecutionsList ? "Hide runs" : "Show runs"}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-
-        <RunWorkflowButton />
-      </ViewActions>
+          <RunWorkflowButton />
+        </ViewActions>
+      )}
     </>
   );
 }

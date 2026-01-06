@@ -17,19 +17,19 @@ export type StepType = "tool" | "code";
 
 interface State {
   originalWorkflow: Workflow;
-  isAddingStep: boolean;
+  isAddingStep?: boolean | null;
   /** The type of step being added (set when user clicks add button) */
-  addingStepType: StepType | null;
+  addingStepType?: StepType | null;
   /** Selected parent steps for multi-selection (used for code steps) */
   selectedParentSteps: string[];
   /** Previous tool info when replacing (for back button) */
-  replacingToolInfo: { toolName: string } | null;
+  replacingToolInfo?: { toolName: string } | null;
   workflow: Workflow;
   trackingExecutionId: string | undefined;
   currentStepTab: CurrentStepTab;
-  currentStepName: string | undefined;
+  currentStepName?: string | null;
   /** Selected gateway ID for tool fetching and execution */
-  selectedGatewayId: string | undefined;
+  selectedGatewayId?: string | null;
 }
 
 interface Actions {
@@ -268,8 +268,12 @@ const createWorkflowStore = (initialState: State) => {
           confirmAddCodeStep: () =>
             set((state) => {
               const { selectedParentSteps, addingStepType, workflow } = state;
-              if (addingStepType !== "code" || selectedParentSteps.length === 0)
+              if (
+                addingStepType !== "code" ||
+                selectedParentSteps.length === 0
+              ) {
                 return state;
+              }
 
               // Build input object with references to all selected parent steps
               const input: Record<string, string> = {};
@@ -398,6 +402,7 @@ const createWorkflowStore = (initialState: State) => {
           initialState.workflow.id,
         ).slice(0, 200)}`,
         storage: createJSONStorage(() => localStorage),
+        version: 1,
         partialize: (state) => ({
           workflow: state.workflow,
           trackingExecutionId: state.trackingExecutionId,
@@ -415,23 +420,26 @@ const createWorkflowStore = (initialState: State) => {
   );
 };
 
+interface WorkflowExecutionStoreProps {
+  initialState: Pick<
+    State,
+    "workflow" | "trackingExecutionId" | "currentStepTab"
+  >;
+}
+
 export function WorkflowStoreProvider({
   children,
-  workflow,
-  trackingExecutionId,
-}: PropsWithChildren<{ workflow: Workflow; trackingExecutionId?: string }>) {
+  initialState: initialStateProps,
+}: PropsWithChildren<WorkflowExecutionStoreProps>) {
   const [store] = useState(() =>
     createWorkflowStore({
-      originalWorkflow: workflow,
-      workflow,
+      workflow: initialStateProps.workflow,
+      originalWorkflow: initialStateProps.workflow,
       isAddingStep: false,
-      addingStepType: null,
       selectedParentSteps: [],
-      replacingToolInfo: null,
-      currentStepName: undefined,
-      trackingExecutionId,
-      currentStepTab: "input",
-      selectedGatewayId: undefined,
+      trackingExecutionId: initialStateProps.trackingExecutionId,
+      currentStepName: initialStateProps.workflow.steps[0]?.name,
+      currentStepTab: initialStateProps.currentStepTab ?? "input",
     }),
   );
 

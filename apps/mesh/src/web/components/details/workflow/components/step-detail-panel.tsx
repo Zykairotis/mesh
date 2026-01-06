@@ -5,6 +5,7 @@ import {
   AccordionTrigger,
 } from "@deco/ui/components/accordion.tsx";
 import { Button } from "@deco/ui/components/button.tsx";
+import { toast } from "@deco/ui/components/sonner.tsx";
 import { cn } from "@deco/ui/lib/utils.ts";
 import { CornerDownRight, Plus, Repeat03 } from "@untitledui/icons";
 import {
@@ -27,7 +28,7 @@ import {
 import { ToolInput } from "./tool-selection/components/tool-input";
 import type { JsonSchema } from "@/web/utils/constants";
 import { MonacoCodeEditor } from "./monaco-editor";
-import type { Step } from "@decocms/bindings/workflow";
+import type { Step, ToolCallAction } from "@decocms/bindings/workflow";
 import { useMcp } from "@/web/hooks/use-mcp";
 import { usePollingWorkflowExecution } from "../hooks";
 
@@ -82,22 +83,6 @@ export function StepDetailPanel({ className }: StepDetailPanelProps) {
     );
   }
 
-  const isToolStep = "toolName" in currentStep.action;
-  const hasToolSelected =
-    isToolStep &&
-    "toolName" in currentStep.action &&
-    currentStep.action.toolName;
-
-  if (!hasToolSelected) {
-    return (
-      <div className={cn("flex flex-col h-full bg-sidebar", className)}>
-        <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
-          Select a tool to configure this step
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div
       className={cn("flex flex-col h-full bg-sidebar overflow-auto", className)}
@@ -115,24 +100,10 @@ export function StepDetailPanel({ className }: StepDetailPanelProps) {
 // ============================================================================
 
 function StepHeader({ step }: { step: Step }) {
-  const { updateStep, startReplacingTool } = useWorkflowActions();
   const isToolStep = "toolName" in step.action;
   const toolName =
     isToolStep && "toolName" in step.action ? step.action.toolName : null;
-
-  const handleReplace = () => {
-    // Store current tool info for back button
-    if (toolName) {
-      startReplacingTool(toolName);
-    }
-    // Clear tool selection to show MCP server selector
-    updateStep(step.name, {
-      action: {
-        ...step.action,
-        toolName: "",
-      },
-    });
-  };
+  const trackingExecutionId = useTrackingExecutionId();
 
   return (
     <div className="border-b border-border p-5 shrink-0">
@@ -146,20 +117,52 @@ function StepHeader({ step }: { step: Step }) {
         <span className="text-base font-medium text-foreground truncate flex-1">
           {toolName}
         </span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-7"
-          onClick={handleReplace}
-          title="Replace tool"
-        >
-          <Repeat03 size={14} />
-        </Button>
+        {trackingExecutionId ? null : <ReplaceToolButton />}
       </div>
       {step.description && (
         <p className="text-sm text-muted-foreground">{step.description}</p>
       )}
     </div>
+  );
+}
+
+function ReplaceToolButton() {
+  const currentStep = useCurrentStep();
+  const { updateStep, startReplacingTool } = useWorkflowActions();
+  const trackingExecutionId = useTrackingExecutionId();
+  const isToolStep = currentStep && "toolName" in currentStep.action;
+  const toolName = isToolStep
+    ? (currentStep.action as ToolCallAction).toolName
+    : null;
+
+  const handleReplace = () => {
+    if (!currentStep) return;
+    if (trackingExecutionId) {
+      toast.error("You cannot replace a tool while a workflow is executing.");
+      return;
+    }
+    // Store current tool info for back button
+    if (toolName) {
+      startReplacingTool(toolName);
+    }
+    // Clear tool selection to show MCP server selector
+    updateStep(currentStep.name, {
+      action: {
+        ...currentStep.action,
+        toolName: "",
+      },
+    });
+  };
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="size-7"
+      onClick={handleReplace}
+      title="Replace tool"
+    >
+      <Repeat03 size={14} />
+    </Button>
   );
 }
 
@@ -354,6 +357,7 @@ function OutputProperty({
 
 function TransformCodeSection({ step }: { step: Step }) {
   const { updateStep } = useWorkflowActions();
+  const trackingExecutionId = useTrackingExecutionId();
 
   const isToolStep = "toolName" in step.action;
   const toolName =
@@ -477,8 +481,10 @@ export default async function(input: Input): Promise<Output> {
       </div>
       <div className="flex-1 min-h-120">
         <MonacoCodeEditor
+          key={`transform-code-${step.name}-${trackingExecutionId}`}
           code={transformCode!}
           language="typescript"
+          readOnly={trackingExecutionId !== undefined}
           onSave={handleCodeSave}
           height="100%"
         />
