@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { WorkflowExecution } from "@decocms/bindings/workflow";
 import { createToolCaller } from "@/tools/client";
 import { useWorkflowBindingConnection } from "../use-workflow-binding-connection";
@@ -8,9 +9,13 @@ type ExecutionQueryResult = {
   step_results: Record<string, unknown> | null;
 };
 
+const POLLING_INTERVALS = [1, 500, 1000, 2000, 3000];
+
 export function usePollingWorkflowExecution(executionId?: string) {
   const connection = useWorkflowBindingConnection();
   const toolCaller = createToolCaller(connection.id);
+  const intervalIndexRef = useRef(0);
+
   const { data, isLoading } = useToolCallQuery<
     { id: string | undefined },
     ExecutionQueryResult
@@ -25,7 +30,14 @@ export function usePollingWorkflowExecution(executionId?: string) {
     refetchInterval: executionId
       ? (query) => {
           const status = query.state?.data?.item?.status;
-          return status === "running" || status === "enqueued" ? 2000 : false;
+          if (status === "running" || status === "enqueued") {
+            const interval = POLLING_INTERVALS[intervalIndexRef.current] ?? 1;
+            intervalIndexRef.current =
+              (intervalIndexRef.current + 1) % POLLING_INTERVALS.length;
+            return interval;
+          }
+          intervalIndexRef.current = 0;
+          return false;
         }
       : false,
   });

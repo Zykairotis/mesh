@@ -18,10 +18,16 @@ import {
   GitBranch01,
   Play,
   Save02,
+  Stop,
 } from "@untitledui/icons";
 import { Suspense, useState } from "react";
 import { ViewActions, ViewTabs } from "../../layout";
-import { usePollingWorkflowExecution, useWorkflowStart } from "../hooks";
+import {
+  usePollingWorkflowExecution,
+  useWorkflowCancel,
+  useWorkflowResume,
+  useWorkflowStart,
+} from "../hooks";
 import { useViewModeStore, type WorkflowViewMode } from "../stores/view-mode";
 import {
   useIsDirty,
@@ -174,16 +180,24 @@ function useIsExecutionCompleted() {
   return item?.completed_at_epoch_ms != null;
 }
 
+function useIsExecutionCancelled() {
+  const trackingExecutionId = useTrackingExecutionId();
+  const { item } = usePollingWorkflowExecution(trackingExecutionId);
+  return item?.status === "cancelled";
+}
+
 function RunWorkflowButton() {
   const isDirty = useIsDirty();
   const isExecutionCompleted = useIsExecutionCompleted();
+  const isExecutionCancelled = useIsExecutionCancelled();
   const trackingExecutionId = useTrackingExecutionId();
   const selectedGatewayId = useSelectedGatewayId();
   const { handleRunWorkflow, isPending, requiresInput, inputSchema } =
     useWorkflowStart();
   const steps = useWorkflowSteps();
   const [showInputDialog, setShowInputDialog] = useState(false);
-
+  const { handleCancelWorkflow, isCancelling } = useWorkflowCancel();
+  const { handleResumeWorkflow, isResuming } = useWorkflowResume();
   const trackingExecutionIsRunning =
     trackingExecutionId && !isExecutionCompleted;
 
@@ -196,37 +210,52 @@ function RunWorkflowButton() {
   const hasNoGateway = !selectedGatewayId;
 
   const isDisabled =
-    trackingExecutionIsRunning || isDirty || hasEmptySteps || hasNoGateway;
+    isDirty || hasEmptySteps || hasNoGateway || isPending || isCancelling;
 
+  const isRunning = trackingExecutionIsRunning || isPending;
   const getTooltipMessage = () => {
-    if (trackingExecutionIsRunning) return "Workflow is currently running";
+    if (isExecutionCancelled) return "Workflow is currently cancelled";
+    if (isRunning) return "Workflow is currently running";
     if (isDirty) return "Save your changes before running";
     if (hasNoGateway) return "Select a gateway first";
-    if (hasEmptySteps) return "All steps must have a tool selected";
+    if (hasEmptySteps) return "Add at least one step to the workflow";
     return null;
   };
 
   const tooltipMessage = getTooltipMessage();
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (requiresInput && inputSchema) {
       setShowInputDialog(true);
-    } else {
-      handleRunWorkflow({});
+      return;
     }
+
+    if (isExecutionCancelled && trackingExecutionId) {
+      await handleResumeWorkflow(trackingExecutionId);
+      return;
+    }
+
+    if (isRunning && trackingExecutionId) {
+      await handleCancelWorkflow(trackingExecutionId);
+      return;
+    }
+
+    await handleRunWorkflow({});
   };
 
   const handleInputSubmit = async (input: Record<string, unknown>) => {
     await handleRunWorkflow(input);
   };
 
-  const buttonLabel = trackingExecutionId
-    ? isExecutionCompleted
-      ? "Replay"
-      : "Running..."
-    : requiresInput
-      ? "Run with input..."
-      : "Run workflow";
+  const buttonLabel = isExecutionCancelled
+    ? "Resume"
+    : trackingExecutionId
+      ? isExecutionCompleted
+        ? "Replay"
+        : "Running..."
+      : requiresInput
+        ? "Run with input..."
+        : "Run workflow";
 
   const button = (
     <Button
@@ -240,8 +269,17 @@ function RunWorkflowButton() {
       disabled={isDisabled}
       onClick={handleClick}
     >
-      {!trackingExecutionIsRunning && <Play size={14} />}
-      {trackingExecutionIsRunning && <Spinner size="xs" />}
+      {((!trackingExecutionIsRunning &&
+        !isPending &&
+        !isCancelling &&
+        !isResuming) ||
+        isExecutionCancelled) && <Play size={14} />}
+      {trackingExecutionIsRunning &&
+        !isPending &&
+        !isCancelling &&
+        !isResuming &&
+        !isExecutionCancelled && <Stop size={14} />}
+      {(isPending || isCancelling || isResuming) && <Spinner size="xs" />}
       {buttonLabel}
     </Button>
   );
