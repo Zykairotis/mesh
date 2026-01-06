@@ -11,6 +11,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/vanilla/shallow";
 import { jsonSchemaToTypeScript } from "../typescript-to-json-schema";
+import { useGateways } from "@/web/hooks/collections/use-gateway";
 
 type CurrentStepTab = "input" | "output" | "action" | "executions";
 export type StepType = "tool" | "code";
@@ -398,9 +399,7 @@ const createWorkflowStore = (initialState: State) => {
         },
       }),
       {
-        name: `workflow-store-${encodeURIComponent(
-          initialState.workflow.id,
-        ).slice(0, 200)}`,
+        name: `workflow-store-${encodeURIComponent(initialState.workflow.id)}`,
         storage: createJSONStorage(() => localStorage),
         version: 1,
         partialize: (state) => ({
@@ -431,10 +430,12 @@ export function WorkflowStoreProvider({
   children,
   initialState: initialStateProps,
 }: PropsWithChildren<WorkflowExecutionStoreProps>) {
+  const gateways = useGateways();
   const [store] = useState(() =>
     createWorkflowStore({
       workflow: initialStateProps.workflow,
       originalWorkflow: initialStateProps.workflow,
+      selectedGatewayId: gateways?.[0]?.id,
       isAddingStep: false,
       selectedParentSteps: [],
       trackingExecutionId: initialStateProps.trackingExecutionId,

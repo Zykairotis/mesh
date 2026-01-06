@@ -69,15 +69,25 @@ function useSyncOutputSchema(step: Step | undefined) {
 
 export function StepDetailPanel({ className }: StepDetailPanelProps) {
   const currentStep = useCurrentStep();
-
+  const { appendStep } = useWorkflowActions();
   // Sync outputSchema from tool if step has tool but no outputSchema
   useSyncOutputSchema(currentStep);
 
   if (!currentStep) {
     return (
       <div className={cn("flex flex-col h-full bg-sidebar", className)}>
-        <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
-          Select a step to configure
+        <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground gap-2 flex-col">
+          Select or create a step to configure
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            onClick={() => {
+              appendStep({ type: "tool" });
+            }}
+          >
+            <Plus size={14} />
+          </Button>
         </div>
       </div>
     );

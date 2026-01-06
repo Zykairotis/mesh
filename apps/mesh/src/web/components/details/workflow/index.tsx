@@ -226,7 +226,8 @@ function WorkflowDetails({ onBack, onUpdate }: WorkflowDetailsProps) {
     : null;
   const showToolSidebar = isToolStep && !toolName && !trackingExecutionId;
   const showStepDetail =
-    !showToolSidebar && (currentStep || trackingExecutionId);
+    !showToolSidebar &&
+    (currentStep || trackingExecutionId || !showExecutionsList);
 
   return (
     <ViewLayout onBack={onBack}>
