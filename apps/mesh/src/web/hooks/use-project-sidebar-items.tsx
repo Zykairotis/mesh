@@ -33,12 +33,6 @@ export function useProjectSidebarItems() {
       onClick: () => navigate({ to: "/$org/store", params: { org } }),
     },
     {
-      key: "workflow",
-      label: "Workflows",
-      icon: <Zap />,
-      onClick: () => navigate({ to: "/$org/workflow", params: { org } }),
-    },
-    {
       key: "mcps",
       label: "MCP Servers",
       icon: <Container />,
@@ -49,6 +43,12 @@ export function useProjectSidebarItems() {
       label: "MCP Gateways",
       icon: <CpuChip02 />,
       onClick: () => navigate({ to: "/$org/gateways", params: { org } }),
+    },
+    {
+      key: "workflow",
+      label: "Workflows",
+      icon: <Zap />,
+      onClick: () => navigate({ to: "/$org/workflow", params: { org } }),
     },
     {
       key: "monitoring",
