@@ -10,8 +10,8 @@
 
 import { PrometheusSerializer } from "@opentelemetry/exporter-prometheus";
 import { Hono } from "hono";
-import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { cors } from "hono/cors";
 import { auth } from "../auth";
 import {
   ContextFactory,
@@ -98,6 +98,7 @@ import {
 import { MiddlewareHandler } from "hono/types";
 import { getToolsByCategory, MANAGEMENT_TOOLS } from "../tools/registry";
 import { Env } from "./env";
+import { devLogger } from "./utils/dev-logger";
 const getHandleOAuthProtectedResourceMetadata = () =>
   oAuthProtectedResourceMetadata(auth);
 const getHandleOAuthDiscoveryMetadata = () => oAuthDiscoveryMetadata(auth);
@@ -180,8 +181,11 @@ export function createApp(options: CreateAppOptions = {}) {
     }),
   );
 
-  // Request logging
-  app.use("*", logger());
+  if (process.env.NODE_ENV === "production") {
+    app.use("*", logger());
+  } else {
+    app.use("*", devLogger());
+  }
 
   // Log response body for 5xx errors
   app.use("*", async (c, next) => {
