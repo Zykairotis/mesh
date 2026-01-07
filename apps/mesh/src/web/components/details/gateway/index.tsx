@@ -12,6 +12,8 @@ import {
 import { useConnections } from "@/web/hooks/collections/use-connection";
 import { useConnectionsPrompts } from "@/web/hooks/use-connection-prompts";
 import { useConnectionsResources } from "@/web/hooks/use-connection-resources";
+import { useBindingConnections } from "@/web/hooks/use-binding";
+import { useStoredSelection } from "@/web/hooks/use-stored-selection";
 import { Button } from "@deco/ui/components/button.tsx";
 import {
   InfoCircle,
@@ -70,12 +72,9 @@ import {
   UsageStats,
   useModels,
 } from "@/web/components/chat";
-import { IceBreakers } from "@/web/components/chat/ice-breakers";
 import { useChat } from "@/web/components/chat/chat-context";
-import {
-  useGatewayPrompts,
-  type GatewayPrompt,
-} from "@/web/hooks/use-gateway-prompts";
+import { GatewayIceBreakers } from "@/web/components/chat/gateway-ice-breakers";
+import { NoLlmBindingEmptyState } from "@/web/components/chat/no-llm-binding-empty-state";
 import { useLocalStorage } from "@/web/hooks/use-local-storage";
 import { usePersistedChat } from "@/web/hooks/use-persisted-chat";
 import { LOCALSTORAGE_KEYS } from "@/web/lib/localstorage-keys";
@@ -94,54 +93,6 @@ type GatewayTabId = "settings" | "tools" | "resources" | "prompts";
  */
 const GATEWAY_SYSTEM_PROMPT =
   "You are a helpful assistant. Please try answering the user's questions using your available tools.";
-
-/**
- * Ice breakers component that uses suspense to fetch gateway prompts
- */
-function GatewayIceBreakers({
-  gatewayId,
-  onSelect,
-}: {
-  gatewayId: string;
-  onSelect: (prompt: GatewayPrompt) => void;
-}) {
-  const { data: prompts } = useGatewayPrompts(gatewayId);
-
-  if (prompts.length === 0) return null;
-
-  return <IceBreakers prompts={prompts} onSelect={onSelect} className="mt-6" />;
-}
-
-/**
- * Helper to find stored item in array, fallback to first item
- */
-function findOrFirst<T>(
-  array: T[],
-  predicate: (item: T) => boolean,
-): T | undefined {
-  return array.find(predicate) ?? array[0];
-}
-
-/**
- * Hook that combines useLocalStorage with findOrFirst to manage selected items
- */
-function useStoredSelection<TState, TItem>(
-  key: string,
-  items: TItem[],
-  predicate: (item: TItem, state: TState) => boolean,
-  initialValue: TState | null = null,
-) {
-  const [storedState, setStoredState] = useLocalStorage<TState | null>(
-    key,
-    initialValue,
-  );
-
-  const selectedItem = findOrFirst(items, (item) =>
-    storedState ? predicate(item, storedState) : false,
-  );
-
-  return [selectedItem, setStoredState] as const;
-}
 
 /**
  * Unicode-safe base64 encoding for browser environments
@@ -449,8 +400,17 @@ function GatewayChatPanelContent({
   // Fetch models
   const models = useModels();
 
+  // Check for LLM binding connection
+  const allConnections = useConnections({});
+  const [modelsConnection] = useBindingConnections({
+    connections: allConnections,
+    binding: "LLMS",
+  });
+  const hasModelsBinding = Boolean(modelsConnection);
+
   // Model selection with localStorage
-  const { locator } = useProjectContext();
+  const { locator, org } = useProjectContext();
+  const navigate = useNavigate();
   const [selectedModel, setSelectedModelState] = useStoredSelection<
     { id: string; connectionId: string },
     (typeof models)[number]
@@ -532,6 +492,33 @@ function GatewayChatPanelContent({
     clearBranch();
     setInputValue("");
   };
+
+  // Show empty state if no models binding
+  if (!hasModelsBinding) {
+    return (
+      <Chat>
+        <Chat.Main className="h-full relative overflow-hidden">
+          <Chat.EmptyState>
+            <NoLlmBindingEmptyState
+              description="Connect to a model provider to unlock AI-powered features in this gateway."
+              orgSlug={org.slug}
+              orgId={org.id}
+              userId={user?.id ?? ""}
+              allConnections={allConnections}
+              onInstallMcpServer={() =>
+                navigate({
+                  to: "/$org/mcps",
+                  params: { org: org.slug },
+                  search: { action: "create" },
+                })
+              }
+            />
+          </Chat.EmptyState>
+        </Chat.Main>
+        <Chat.Footer />
+      </Chat>
+    );
+  }
 
   const emptyState = (
     <div className="flex flex-col items-center justify-center gap-4 p-4 text-center">
