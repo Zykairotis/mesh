@@ -34,13 +34,13 @@ export function useProjectSidebarItems() {
     },
     {
       key: "mcps",
-      label: "MCP Servers",
+      label: "Connections",
       icon: <Container />,
       onClick: () => navigate({ to: "/$org/mcps", params: { org } }),
     },
     {
       key: "gateways",
-      label: "MCP Gateways",
+      label: "Hubs",
       icon: <CpuChip02 />,
       onClick: () => navigate({ to: "/$org/gateways", params: { org } }),
     },

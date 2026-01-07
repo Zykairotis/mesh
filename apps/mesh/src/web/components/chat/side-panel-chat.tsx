@@ -74,7 +74,7 @@ function useSystemPrompt(gatewayId?: string): string {
   return `You are an AI assistant running in an MCP Mesh environment.
 
 ## About MCP Mesh
-The Model Context Protocol (MCP) Mesh allows users to connect external MCP servers and expose their capabilities through gateways. Each gateway provides access to a curated set of tools from connected MCP servers.
+The Model Context Protocol (MCP) Mesh allows users to connect external Connections and expose their capabilities through Hubs. Each Hub provides access to a curated set of tools from connected Connections.
 
 ## Important Notes
 - All tool calls are logged and audited for security and compliance
@@ -179,7 +179,7 @@ function ChatPanelContent() {
     }
 
     if (!selectedGateway?.id) {
-      toast.error("No gateway configured");
+      toast.error("No Hub configured");
       return;
     }
 
@@ -223,14 +223,14 @@ function ChatPanelContent() {
     if (!hasModelsBinding && !hasGateways) {
       title = "Connect your providers";
       description =
-        "Connect an LLM provider and create a gateway to unlock AI-powered features.";
+        "Connect an LLM provider and create a Hub to unlock AI-powered features.";
     } else if (!hasModelsBinding) {
       title = "No model provider connected";
       description =
         "Connect to a model provider to unlock AI-powered features.";
     } else {
-      title = "No gateways configured";
-      description = "Create a gateway to expose your MCP tools to the chat.";
+      title = "No Hubs configured";
+      description = "Create a Hub to expose your MCP tools to the chat.";
     }
 
     return (
@@ -292,7 +292,7 @@ function ChatPanelContent() {
                       })
                     }
                   >
-                    Install MCP Server
+                    Create Connection
                   </Button>
                 }
               />
@@ -450,7 +450,7 @@ function ChatPanelContent() {
             <GatewaySelector
               selectedGatewayId={selectedGateway?.id}
               onGatewayChange={handleGatewayChange}
-              placeholder="Gateway"
+              placeholder="Hub"
               variant="borderless"
             />
             <ModelSelector
