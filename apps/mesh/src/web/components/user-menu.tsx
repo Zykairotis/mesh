@@ -1,90 +1,18 @@
 import { UserMenu } from "@deco/ui/components/user-menu.tsx";
 import { Avatar } from "@deco/ui/components/avatar.tsx";
 import {
-  UserCircle,
+  Settings01,
   Globe01,
   LogOut01,
   LinkExternal01,
-  Check,
   Copy01,
+  Check,
 } from "@untitledui/icons";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@deco/ui/components/dialog.tsx";
 import { authClient } from "@/web/lib/auth-client";
 import { GitHubIcon } from "@daveyplate/better-auth-ui";
 import { useState } from "react";
-
-function ProfileDialog({
-  open,
-  onOpenChange,
-  user,
-  userImage,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  user: { id: string; name?: string | null; email: string };
-  userImage?: string;
-}) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopyUserId = () => {
-    navigator.clipboard.writeText(user.id);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Profile</DialogTitle>
-          <DialogDescription>Your account information</DialogDescription>
-        </DialogHeader>
-        <div className="flex flex-col items-center gap-6 py-4">
-          <Avatar
-            url={userImage}
-            fallback={user.name || user.email || "U"}
-            shape="circle"
-            size="2xl"
-          />
-          <div className="flex flex-col items-center gap-2 w-full">
-            <div className="text-lg font-semibold text-center">
-              {user.name || user.email}
-            </div>
-            <div className="text-sm text-muted-foreground text-center">
-              {user.email}
-            </div>
-          </div>
-          <div className="flex items-center justify-between gap-3 w-full px-4 py-3 rounded-lg bg-muted/50 border border-border">
-            <div className="flex flex-col gap-1 min-w-0 flex-1">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                User ID
-              </span>
-              <span className="text-sm font-mono truncate">{user.id}</span>
-            </div>
-            <button
-              type="button"
-              onClick={handleCopyUserId}
-              className="shrink-0 p-2 hover:bg-background rounded-md transition-colors"
-              aria-label="Copy user ID"
-            >
-              {copied ? (
-                <Check size={16} className="text-green-600" />
-              ) : (
-                <Copy01 size={16} className="text-muted-foreground" />
-              )}
-            </button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
+import { UserSettingsDialog } from "@/web/components/user-settings-dialog.tsx";
+import { toast } from "sonner";
 
 function MeshUserMenuBase({
   user,
@@ -93,7 +21,16 @@ function MeshUserMenuBase({
   user: { id: string; name?: string; email: string };
   userImage?: string;
 }) {
-  const [profileOpen, setProfileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyUserInfo = () => {
+    const userInfo = `ID: ${user.id}\nName: ${user.name || "N/A"}\nEmail: ${user.email}`;
+    navigator.clipboard.writeText(userInfo);
+    setCopied(true);
+    toast.success("User info copied to clipboard");
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <>
@@ -110,9 +47,37 @@ function MeshUserMenuBase({
         )}
         align="end"
       >
-        <UserMenu.Item onClick={() => setProfileOpen(true)}>
-          <UserCircle className="text-muted-foreground" size={18} />
-          Profile
+        <UserMenu.Item onClick={handleCopyUserInfo}>
+          <div className="group flex items-center gap-3 w-full py-1">
+            <Avatar
+              url={userImage}
+              fallback={user.name || user.email || "U"}
+              shape="circle"
+              size="sm"
+            />
+            <div className="flex-1 min-w-0 text-left">
+              <div className="text-sm font-medium truncate">
+                {user.name || "User"}
+              </div>
+              <div className="text-xs text-muted-foreground truncate">
+                {user.email}
+              </div>
+            </div>
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+              {copied ? (
+                <Check size={16} className="text-green-600" />
+              ) : (
+                <Copy01 size={16} className="text-muted-foreground" />
+              )}
+            </div>
+          </div>
+        </UserMenu.Item>
+
+        <UserMenu.Separator />
+
+        <UserMenu.Item onClick={() => setSettingsOpen(true)}>
+          <Settings01 className="text-muted-foreground" size={18} />
+          Profile Settings
         </UserMenu.Item>
 
         <UserMenu.Separator />
@@ -156,10 +121,10 @@ function MeshUserMenuBase({
         </UserMenu.Item>
       </UserMenu>
 
-      {profileOpen && (
-        <ProfileDialog
-          open={profileOpen}
-          onOpenChange={setProfileOpen}
+      {settingsOpen && (
+        <UserSettingsDialog
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
           user={user}
           userImage={userImage}
         />
