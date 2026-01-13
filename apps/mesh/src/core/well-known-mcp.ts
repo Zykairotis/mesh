@@ -1,6 +1,5 @@
 import type { ConnectionCreateData } from "@/tools/connection/schema";
 import type { GatewayEntity } from "@/tools/gateway/schema";
-import type { GatewayWithConnections } from "@/storage/types";
 
 /** Deco CMS API host for detecting deco-hosted MCPs */
 export const DECO_CMS_API_HOST = "api.decocms.com";
@@ -200,58 +199,25 @@ export function getWellKnownMcpStudioConnection(): ConnectionCreateData {
  * Uses exclusion mode with empty connections list, which effectively includes all connections.
  *
  * @param organizationId - The organization ID
- * @returns GatewayWithConnections object representing Decopilot
+ * @returns GatewayEntity object representing Decopilot
  */
 export function getWellKnownDecopilotAgent(
   organizationId: string,
-): GatewayWithConnections {
+): GatewayEntity {
   const now = new Date().toISOString();
 
   return {
     id: WellKnownGatewayId.DECOPILOT,
-    organizationId,
+    organization_id: organizationId,
     title: "Decopilot",
     description: "Use all organization connections into a single agent",
-    toolSelectionMode: "exclusion",
+    tool_selection_mode: "exclusion",
     icon: DECOPILOT_ICON_URL,
     status: "active",
-    createdAt: now,
-    updatedAt: now,
-    createdBy: "", // Well-known agent has no creator
-    updatedBy: null,
+    created_at: now,
+    updated_at: now,
+    created_by: "", // Well-known agent has no creator
+    updated_by: undefined,
     connections: [], // Empty array in exclusion mode means include all connections
-  };
-}
-
-/**
- * Convert GatewayWithConnections to GatewayEntity format (for frontend use)
- */
-export function gatewayWithConnectionsToEntity(
-  gateway: GatewayWithConnections,
-): GatewayEntity {
-  return {
-    id: gateway.id,
-    title: gateway.title,
-    description: gateway.description,
-    icon: gateway.icon,
-    created_at:
-      gateway.createdAt instanceof Date
-        ? gateway.createdAt.toISOString()
-        : gateway.createdAt,
-    updated_at:
-      gateway.updatedAt instanceof Date
-        ? gateway.updatedAt.toISOString()
-        : gateway.updatedAt,
-    created_by: gateway.createdBy,
-    updated_by: gateway.updatedBy ?? undefined,
-    organization_id: gateway.organizationId,
-    tool_selection_mode: gateway.toolSelectionMode,
-    status: gateway.status,
-    connections: gateway.connections.map((conn) => ({
-      connection_id: conn.connectionId,
-      selected_tools: conn.selectedTools,
-      selected_resources: conn.selectedResources,
-      selected_prompts: conn.selectedPrompts,
-    })),
   };
 }

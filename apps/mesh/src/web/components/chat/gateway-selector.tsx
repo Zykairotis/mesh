@@ -12,10 +12,7 @@ import { cn } from "@deco/ui/lib/utils.ts";
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useGateways as useGatewaysCollection } from "../../hooks/collections/use-gateway";
 import { useProjectContext } from "../../providers/project-context-provider";
-import {
-  getWellKnownDecopilotAgent,
-  gatewayWithConnectionsToEntity,
-} from "@/core/well-known-mcp";
+import { getWellKnownDecopilotAgent } from "@/core/well-known-mcp";
 
 export interface GatewayInfo
   extends Pick<GatewayEntity, "id" | "title" | "description" | "icon"> {
@@ -32,9 +29,7 @@ export function useGateways(): GatewayInfo[] {
   const gatewaysData = useGatewaysCollection();
 
   // Create Decopilot agent (empty connections array in exclusion mode includes all)
-  const decopilotAgent = gatewayWithConnectionsToEntity(
-    getWellKnownDecopilotAgent(org.id),
-  );
+  const decopilotAgent = getWellKnownDecopilotAgent(org.id);
 
   return [decopilotAgent, ...(gatewaysData ?? [])];
 }

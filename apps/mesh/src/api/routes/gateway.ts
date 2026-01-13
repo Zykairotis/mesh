@@ -51,7 +51,7 @@ import {
   parseStrategyFromMode,
   type GatewayToolSelectionStrategy,
 } from "../../gateway/strategy";
-import type { GatewayWithConnections } from "../../storage/types";
+import type { GatewayEntity } from "../../tools/gateway/schema";
 import type { ConnectionEntity } from "../../tools/connection/schema";
 import type { Env } from "../env";
 import {
@@ -118,7 +118,7 @@ async function createMCPGateway(
  * Handles inclusion/exclusion modes and smart_tool_selection strategy
  */
 async function createMCPGatewayFromEntity(
-  gateway: GatewayWithConnections,
+  gateway: GatewayEntity,
   ctx: MeshContext,
   strategy: GatewayToolSelectionStrategy,
 ): Promise<GatewayClient> {
@@ -129,10 +129,10 @@ async function createMCPGatewayFromEntity(
     selectedPrompts: string[] | null;
   }>;
 
-  if (gateway.toolSelectionMode === "exclusion") {
+  if (gateway.tool_selection_mode === "exclusion") {
     // Exclusion mode: list ALL org connections, then apply exclusion filter
     const allConnections = await ctx.storage.connections.list(
-      gateway.organizationId,
+      gateway.organization_id,
     );
     const activeConnections = allConnections.filter(
       (c) => c.status === "active",
@@ -148,10 +148,10 @@ async function createMCPGatewayFromEntity(
       }
     >();
     for (const gwConn of gateway.connections) {
-      exclusionMap.set(gwConn.connectionId, {
-        selectedTools: gwConn.selectedTools,
-        selectedResources: gwConn.selectedResources,
-        selectedPrompts: gwConn.selectedPrompts,
+      exclusionMap.set(gwConn.connection_id, {
+        selectedTools: gwConn.selected_tools,
+        selectedResources: gwConn.selected_resources,
+        selectedPrompts: gwConn.selected_prompts,
       });
     }
 
@@ -189,7 +189,7 @@ async function createMCPGatewayFromEntity(
     }
   } else {
     // Inclusion mode (default): use only the connections specified in gateway
-    const connectionIds = gateway.connections.map((c) => c.connectionId);
+    const connectionIds = gateway.connections.map((c) => c.connection_id);
     const loadedConnections: ConnectionEntity[] = [];
 
     for (const connId of connectionIds) {
@@ -201,13 +201,13 @@ async function createMCPGatewayFromEntity(
 
     connections = loadedConnections.map((conn) => {
       const gwConn = gateway.connections.find(
-        (c) => c.connectionId === conn.id,
+        (c) => c.connection_id === conn.id,
       );
       return {
         connection: conn,
-        selectedTools: gwConn?.selectedTools ?? null,
-        selectedResources: gwConn?.selectedResources ?? null,
-        selectedPrompts: gwConn?.selectedPrompts ?? null,
+        selectedTools: gwConn?.selected_tools ?? null,
+        selectedResources: gwConn?.selected_resources ?? null,
+        selectedPrompts: gwConn?.selected_prompts ?? null,
       };
     });
   }
@@ -215,7 +215,7 @@ async function createMCPGatewayFromEntity(
   // Build gateway options with strategy
   const options: GatewayOptions = {
     connections,
-    toolSelectionMode: gateway.toolSelectionMode,
+    toolSelectionMode: gateway.tool_selection_mode,
     toolSelectionStrategy: strategy,
   };
 
@@ -238,7 +238,7 @@ app.all("/gateway/:gatewayId?", async (c) => {
   const ctx = c.get("meshContext");
 
   try {
-    let gateway: GatewayWithConnections | null = null;
+    let gateway: GatewayEntity | null = null;
 
     // Check if this is Decopilot (well-known agent) or omitted (defaults to Decopilot)
     if (!gatewayId || gatewayId === WellKnownGatewayId.DECOPILOT) {
@@ -303,7 +303,7 @@ app.all("/gateway/:gatewayId?", async (c) => {
     const organization = await ctx.db
       .selectFrom("organization")
       .select(["id", "slug", "name"])
-      .where("id", "=", gateway.organizationId)
+      .where("id", "=", gateway.organization_id)
       .executeTakeFirst();
 
     if (organization) {
