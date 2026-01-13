@@ -99,7 +99,6 @@ export interface GatewayCreateData {
   toolSelectionMode?: Gateway["toolSelectionMode"];
   icon?: string | null;
   status?: Gateway["status"];
-  isDefault?: boolean;
   connections: Array<{
     connectionId: string;
     selectedTools?: string[] | null;
@@ -117,7 +116,6 @@ export interface GatewayUpdateData {
   toolSelectionMode?: Gateway["toolSelectionMode"];
   icon?: string | null;
   status?: Gateway["status"];
-  isDefault?: boolean;
   connections?: Array<{
     connectionId: string;
     selectedTools?: string[] | null;
@@ -144,12 +142,4 @@ export interface GatewayStoragePort {
     data: GatewayUpdateData,
   ): Promise<GatewayWithConnections>;
   delete(id: string): Promise<void>;
-  getDefaultByOrgId(
-    organizationId: string,
-  ): Promise<GatewayWithConnections | null>;
-  getDefaultByOrgSlug(orgSlug: string): Promise<GatewayWithConnections | null>;
-  setDefault(
-    gatewayId: string,
-    userId: string,
-  ): Promise<GatewayWithConnections>;
 }

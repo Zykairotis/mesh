@@ -47,13 +47,6 @@ export const COLLECTION_GATEWAY_DELETE = defineTool({
       throw new Error(`Gateway not found: ${input.id}`);
     }
 
-    // Prevent deletion of the Organization Agent
-    if (existing.isDefault) {
-      throw new Error(
-        "Cannot delete the Organization Agent. Set another Agent as the Organization Agent first.",
-      );
-    }
-
     // Delete the gateway (connections are deleted via CASCADE)
     await ctx.storage.gateways.delete(input.id);
 
@@ -67,7 +60,6 @@ export const COLLECTION_GATEWAY_DELETE = defineTool({
         organization_id: existing.organizationId,
         tool_selection_mode: existing.toolSelectionMode,
         status: existing.status,
-        is_default: existing.isDefault,
         connections: existing.connections.map((conn) => ({
           connection_id: conn.connectionId,
           selected_tools: conn.selectedTools,

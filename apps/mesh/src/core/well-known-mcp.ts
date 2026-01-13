@@ -1,4 +1,6 @@
 import type { ConnectionCreateData } from "@/tools/connection/schema";
+import type { GatewayEntity } from "@/tools/gateway/schema";
+import type { GatewayWithConnections } from "@/storage/types";
 
 /** Deco CMS API host for detecting deco-hosted MCPs */
 export const DECO_CMS_API_HOST = "api.decocms.com";
@@ -11,6 +13,10 @@ export const OPENROUTER_MCP_URL = "https://sites-openrouter.decocache.com/mcp";
 
 /** OpenRouter icon URL */
 export const OPENROUTER_ICON_URL = "https://openrouter.ai/favicon.ico";
+
+/** Decopilot icon URL */
+export const DECOPILOT_ICON_URL =
+  "https://assets.decocache.com/decocms/fd07a578-6b1c-40f1-bc05-88a3b981695d/f7fc4ffa81aec04e37ae670c3cd4936643a7b269.png";
 
 /**
  * Check if a connection URL is a deco-hosted MCP (excluding the registry itself).
@@ -36,6 +42,10 @@ export const WellKnownOrgMCPId = {
   REGISTRY: (org: string) => `${org}_${WellKnownMCPId.REGISTRY}`,
   COMMUNITY_REGISTRY: (org: string) =>
     `${org}_${WellKnownMCPId.COMMUNITY_REGISTRY}`,
+};
+
+export const WellKnownGatewayId = {
+  DECOPILOT: "decopilot",
 };
 
 /**
@@ -180,5 +190,68 @@ export function getWellKnownMcpStudioConnection(): ConnectionCreateData {
       isDefault: false,
       type: "mcp-studio",
     },
+  };
+}
+
+/**
+ * Get well-known Decopilot agent definition.
+ * Decopilot is a virtual gateway that includes all active connections in an organization.
+ * It's defined in code, not stored in the database.
+ * Uses exclusion mode with empty connections list, which effectively includes all connections.
+ *
+ * @param organizationId - The organization ID
+ * @returns GatewayWithConnections object representing Decopilot
+ */
+export function getWellKnownDecopilotAgent(
+  organizationId: string,
+): GatewayWithConnections {
+  const now = new Date().toISOString();
+
+  return {
+    id: WellKnownGatewayId.DECOPILOT,
+    organizationId,
+    title: "Decopilot",
+    description: "Use all organization connections into a single agent",
+    toolSelectionMode: "exclusion",
+    icon: DECOPILOT_ICON_URL,
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+    createdBy: "", // Well-known agent has no creator
+    updatedBy: null,
+    connections: [], // Empty array in exclusion mode means include all connections
+  };
+}
+
+/**
+ * Convert GatewayWithConnections to GatewayEntity format (for frontend use)
+ */
+export function gatewayWithConnectionsToEntity(
+  gateway: GatewayWithConnections,
+): GatewayEntity {
+  return {
+    id: gateway.id,
+    title: gateway.title,
+    description: gateway.description,
+    icon: gateway.icon,
+    created_at:
+      gateway.createdAt instanceof Date
+        ? gateway.createdAt.toISOString()
+        : gateway.createdAt,
+    updated_at:
+      gateway.updatedAt instanceof Date
+        ? gateway.updatedAt.toISOString()
+        : gateway.updatedAt,
+    created_by: gateway.createdBy,
+    updated_by: gateway.updatedBy ?? undefined,
+    organization_id: gateway.organizationId,
+    tool_selection_mode: gateway.toolSelectionMode,
+    status: gateway.status,
+    connections: gateway.connections.map((conn) => ({
+      connection_id: conn.connectionId,
+      selected_tools: conn.selectedTools,
+      selected_resources: conn.selectedResources,
+      selected_prompts: conn.selectedPrompts,
+    })),
   };
 }

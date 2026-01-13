@@ -20,16 +20,18 @@ import { NoLlmBindingEmptyState } from "@/web/components/chat/no-llm-binding-emp
 import { ThreadHistoryPopover } from "@/web/components/chat/thread-history-popover";
 import { ErrorBoundary } from "@/web/components/error-boundary";
 import { useConnections } from "@/web/hooks/collections/use-connection";
-import { useGateways } from "@/web/hooks/collections/use-gateway";
+import { useGateways } from "@/web/components/chat/gateway-selector";
 import { useBindingConnections } from "@/web/hooks/use-binding";
 import { useThreads } from "@/web/hooks/use-chat-store";
 import { useInvalidateCollectionsOnToolCall } from "@/web/hooks/use-invalidate-collections-on-tool-call";
 import { useLocalStorage } from "@/web/hooks/use-local-storage";
 import { usePersistedChat } from "@/web/hooks/use-persisted-chat";
+import { useStoredSelection } from "@/web/hooks/use-stored-selection";
 import { useSystem } from "@/web/hooks/use-system";
 import { authClient } from "@/web/lib/auth-client";
 import { LOCALSTORAGE_KEYS } from "@/web/lib/localstorage-keys";
 import { useProjectContext } from "@/web/providers/project-context-provider";
+import { WellKnownGatewayId } from "@/core/well-known-mcp";
 import { Button } from "@deco/ui/components/button.tsx";
 import { ViewModeToggle } from "@deco/ui/components/view-mode-toggle.tsx";
 import type { Metadata } from "@deco/ui/types/chat-metadata.ts";
@@ -58,35 +60,6 @@ function getTimeBasedGreeting(): string {
   if (hour >= 12 && hour < 17) return "Afternoon";
   if (hour >= 17 && hour < 22) return "Evening";
   return "Night";
-}
-
-/**
- * Helper to find stored item in array
- */
-function findOrFirst<T>(
-  array: T[],
-  predicate: (item: T) => boolean,
-): T | undefined {
-  return array.find(predicate) ?? array[0];
-}
-
-/**
- * Hook to manage stored selection
- */
-function useStoredSelection<TState, TItem>(
-  key: string,
-  items: TItem[],
-  predicate: (item: TItem, state: TState) => boolean,
-  initialValue: TState | null = null,
-) {
-  const [storedState, setStoredState] = useLocalStorage<TState | null>(
-    key,
-    initialValue,
-  );
-  const selectedItem = findOrFirst(items, (item) =>
-    storedState ? predicate(item, storedState) : false,
-  );
-  return [selectedItem, setStoredState] as const;
 }
 
 // ---------- View Mode Types ----------
@@ -194,7 +167,10 @@ function HomeContent() {
     `${locator}:selected-gateway`,
     gateways,
     (g, state) => g.id === state.gatewayId,
+    { gatewayId: WellKnownGatewayId.DECOPILOT },
   );
+
+  console.log({ selectedGateway, gateways });
 
   const handleModelChange = (model: { id: string; connectionId: string }) => {
     setSelectedModelState(model);

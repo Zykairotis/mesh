@@ -30,6 +30,7 @@ import {
 } from "./index";
 import { NoLlmBindingEmptyState } from "./no-llm-binding-empty-state";
 import { ThreadHistoryPopover } from "./thread-history-popover";
+import { WellKnownGatewayId } from "@/core/well-known-mcp";
 
 // Capybara avatar URL from decopilotAgent
 const CAPYBARA_AVATAR_URL =
@@ -80,6 +81,7 @@ function ChatPanelContent() {
     `${locator}:selected-gateway`,
     gateways,
     (g, state) => g.id === state.gatewayId,
+    { gatewayId: WellKnownGatewayId.DECOPILOT }, // Default to Decopilot
   );
 
   // Generate dynamic system prompt based on context

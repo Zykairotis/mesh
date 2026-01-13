@@ -5,6 +5,7 @@
  * These hooks offer a reactive interface for accessing and manipulating gateways.
  */
 
+import { useMemo } from "react";
 import { createToolCaller } from "../../../tools/client";
 import type { GatewayEntity } from "../../../tools/gateway/schema";
 import { useProjectContext } from "../../providers/project-context-provider";
@@ -15,6 +16,11 @@ import {
   useCollectionList,
   type UseCollectionListOptions,
 } from "../use-collections";
+import {
+  getWellKnownDecopilotAgent,
+  gatewayWithConnectionsToEntity,
+  WellKnownGatewayId,
+} from "@/core/well-known-mcp";
 
 /**
  * Filter definition for gateways (matches @deco/ui Filter shape)
@@ -52,12 +58,25 @@ export function useGateways(options: UseGatewaysOptions = {}) {
 export function useGateway(gatewayId: string | undefined) {
   const { org } = useProjectContext();
   const toolCaller = createToolCaller();
-  return useCollectionItem<GatewayEntity>(
+
+  // Handle Decopilot (well-known agent)
+  const decopilotAgent = useMemo(() => {
+    if (gatewayId === WellKnownGatewayId.DECOPILOT) {
+      return gatewayWithConnectionsToEntity(getWellKnownDecopilotAgent(org.id));
+    }
+    return null;
+  }, [gatewayId, org.id]);
+
+  // Use collection item hook for database gateways
+  const dbGateway = useCollectionItem<GatewayEntity>(
     org.slug,
     "GATEWAY",
-    gatewayId,
+    gatewayId === WellKnownGatewayId.DECOPILOT ? undefined : gatewayId,
     toolCaller,
   );
+
+  // Return Decopilot if requested, otherwise return database gateway
+  return decopilotAgent ?? dbGateway;
 }
 
 /**

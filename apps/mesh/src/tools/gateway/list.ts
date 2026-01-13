@@ -223,7 +223,6 @@ export const COLLECTION_GATEWAY_LIST = defineTool({
       title: gateway.title,
       description: gateway.description,
       icon: gateway.icon,
-      is_default: gateway.isDefault,
       organization_id: gateway.organizationId,
       tool_selection_mode: gateway.toolSelectionMode,
       status: gateway.status,
