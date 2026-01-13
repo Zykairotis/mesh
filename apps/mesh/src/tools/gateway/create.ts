@@ -54,6 +54,7 @@ export const COLLECTION_GATEWAY_CREATE = defineTool({
       toolSelectionMode: input.data.tool_selection_mode ?? "inclusion",
       icon: input.data.icon ?? null,
       status: input.data.status,
+      isDefault: input.data.is_default ?? false,
       connections: input.data.connections.map((conn) => ({
         connectionId: conn.connection_id,
         selectedTools: conn.selected_tools ?? null,
@@ -79,6 +80,7 @@ export const COLLECTION_GATEWAY_CREATE = defineTool({
         organization_id: gateway.organizationId,
         tool_selection_mode: gateway.toolSelectionMode,
         status: gateway.status,
+        is_default: gateway.isDefault,
         connections: gateway.connections.map((conn) => ({
           connection_id: conn.connectionId,
           selected_tools: conn.selectedTools,

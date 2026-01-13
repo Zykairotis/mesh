@@ -11,11 +11,6 @@ import { Input } from "@deco/ui/components/input.tsx";
 import { cn } from "@deco/ui/lib/utils.ts";
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useGateways as useGatewaysCollection } from "../../hooks/collections/use-gateway";
-import { useProjectContext } from "../../providers/project-context-provider";
-import {
-  getWellKnownDecopilotAgent,
-  gatewayWithConnectionsToEntity,
-} from "@/core/well-known-mcp";
 
 export interface GatewayInfo
   extends Pick<GatewayEntity, "id" | "title" | "description" | "icon"> {
@@ -25,18 +20,17 @@ export interface GatewayInfo
 /**
  * Hook to fetch and map gateways for the selector.
  * Returns gateway info with fallback icons attached.
- * Includes Decopilot as the first item in the list.
  */
 export function useGateways(): GatewayInfo[] {
-  const { org } = useProjectContext();
   const gatewaysData = useGatewaysCollection();
 
-  // Create Decopilot agent (empty connections array in exclusion mode includes all)
-  const decopilotAgent = gatewayWithConnectionsToEntity(
-    getWellKnownDecopilotAgent(org.id),
-  );
-
-  return [decopilotAgent, ...(gatewaysData ?? [])];
+  return (gatewaysData ?? []).map((g) => ({
+    id: g.id,
+    title: g.title,
+    description: g.description ?? null,
+    icon: g.icon ?? null,
+    fallbackIcon: (<CpuChip02 />) as ReactNode,
+  }));
 }
 
 function GatewayItemContent({
@@ -171,9 +165,6 @@ export function GatewaySelector({
       setSearchTerm("");
     }
   };
-
-
-  console.log({ placeholder, selectedGatewayId, filteredGateways });
 
   return (
     <ResponsiveSelect

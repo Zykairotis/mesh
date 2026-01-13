@@ -75,6 +75,9 @@ export const COLLECTION_GATEWAY_UPDATE = defineTool({
     if (input.data.status !== undefined) {
       updateData.status = input.data.status;
     }
+    if (input.data.is_default !== undefined) {
+      updateData.isDefault = input.data.is_default;
+    }
     if (input.data.connections !== undefined) {
       updateData.connections = input.data.connections.map((conn) => ({
         connectionId: conn.connection_id,
@@ -101,6 +104,7 @@ export const COLLECTION_GATEWAY_UPDATE = defineTool({
         organization_id: gateway.organizationId,
         tool_selection_mode: gateway.toolSelectionMode,
         status: gateway.status,
+        is_default: gateway.isDefault,
         connections: gateway.connections.map((conn) => ({
           connection_id: conn.connectionId,
           selected_tools: conn.selectedTools,

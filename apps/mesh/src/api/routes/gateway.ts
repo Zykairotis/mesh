@@ -54,10 +54,6 @@ import {
 import type { GatewayWithConnections } from "../../storage/types";
 import type { ConnectionEntity } from "../../tools/connection/schema";
 import type { Env } from "../env";
-import {
-  getWellKnownDecopilotAgent,
-  WellKnownGatewayId,
-} from "../../core/well-known-mcp";
 
 // Define Hono variables type
 const app = new Hono<Env>();
@@ -231,7 +227,7 @@ async function createMCPGatewayFromEntity(
  *
  * Route: POST /mcp/gateway/:gatewayId
  * - If gatewayId is provided: use that specific gateway
- * - If gatewayId is omitted or equals "decopilot": resolve to Decopilot (well-known agent)
+ * - If gatewayId is omitted: use Organization Agent for org (from x-org-id or x-org-slug header)
  */
 app.all("/gateway/:gatewayId?", async (c) => {
   const gatewayId = c.req.param("gatewayId");
@@ -240,47 +236,27 @@ app.all("/gateway/:gatewayId?", async (c) => {
   try {
     let gateway: GatewayWithConnections | null = null;
 
-    // Check if this is Decopilot (well-known agent) or omitted (defaults to Decopilot)
-    if (!gatewayId || gatewayId === WellKnownGatewayId.DECOPILOT) {
-      // Resolve to Decopilot - get organization from context or headers
-      let organizationId: string | null = null;
+    if (gatewayId) {
+      // Load gateway by ID
+      gateway = await ctx.storage.gateways.findById(gatewayId);
+    } else {
+      // Load Organization Agent for org from headers
+      const orgId = c.req.header("x-org-id");
+      const orgSlug = c.req.header("x-org-slug");
 
-      if (ctx.organization) {
-        organizationId = ctx.organization.id;
+      if (orgId) {
+        gateway = await ctx.storage.gateways.getDefaultByOrgId(orgId);
+      } else if (orgSlug) {
+        gateway = await ctx.storage.gateways.getDefaultByOrgSlug(orgSlug);
       } else {
-        const orgId = c.req.header("x-org-id");
-        const orgSlug = c.req.header("x-org-slug");
-
-        if (orgId) {
-          organizationId = orgId;
-        } else if (orgSlug) {
-          // Look up organization by slug
-          const org = await ctx.db
-            .selectFrom("organization")
-            .select("id")
-            .where("slug", "=", orgSlug)
-            .executeTakeFirst();
-          if (org) {
-            organizationId = org.id;
-          }
-        }
-      }
-
-      if (!organizationId) {
         return c.json(
           {
             error:
-              "Agent ID required, or provide x-org-id or x-org-slug header for Decopilot",
+              "Agent ID required, or provide x-org-id or x-org-slug header for Organization Agent",
           },
           400,
         );
       }
-
-      // Create Decopilot agent dynamically (empty connections array in exclusion mode includes all)
-      gateway = getWellKnownDecopilotAgent(organizationId);
-    } else {
-      // Load gateway by ID from database
-      gateway = await ctx.storage.gateways.findById(gatewayId);
     }
 
     if (!gateway) {
@@ -288,7 +264,7 @@ app.all("/gateway/:gatewayId?", async (c) => {
         return c.json({ error: `Agent not found: ${gatewayId}` }, 404);
       }
       return c.json(
-        { error: "No Decopilot agent available for this organization" },
+        { error: "No Organization Agent configured for this organization" },
         404,
       );
     }

@@ -6,6 +6,7 @@ import {
 import { getDb } from "@/database";
 import { CredentialVault } from "@/encryption/credential-vault";
 import { ConnectionStorage } from "@/storage/connection";
+import { GatewayStorage } from "@/storage/gateway";
 import { Permission } from "@/storage/types";
 import { fetchToolsFromMCP } from "@/tools/connection/fetch-tools";
 import {
@@ -88,9 +89,12 @@ export async function seedOrgDb(organizationId: string, createdBy: string) {
     const database = getDb();
     const vault = new CredentialVault(process.env.ENCRYPTION_KEY || "");
     const connectionStorage = new ConnectionStorage(database.db, vault);
+    const gatewayStorage = new GatewayStorage(database.db);
     const defaultOrgMcps = getDefaultOrgMcps(organizationId);
 
-    // Create default connections
+    // Create default connections and collect their IDs
+    const createdConnectionIds: string[] = [];
+
     await Promise.all(
       defaultOrgMcps.map(async (mcpConfig) => {
         let connectionToken: string | null = null;
@@ -137,8 +141,21 @@ export async function seedOrgDb(organizationId: string, createdBy: string) {
           created_by: createdBy,
           connection_token: mcpConfig.data.connection_token ?? connectionToken,
         });
+
+        createdConnectionIds.push(connection.id);
       }),
     );
+
+    // Create Organization Agent with exclusion mode
+    // This Agent excludes nothing by default (empty connections list with exclusion = include all)
+    await gatewayStorage.create(organizationId, createdBy, {
+      title: "Organization Agent",
+      description: "Use all organization connections into a single agent",
+      toolSelectionMode: "exclusion",
+      status: "active",
+      isDefault: true,
+      connections: createdConnectionIds.map((c) => ({ connectionId: c })),
+    });
   } catch (err) {
     console.error("Error creating default MCP connections:", err);
   }
