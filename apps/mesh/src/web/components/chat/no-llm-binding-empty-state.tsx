@@ -3,22 +3,22 @@ import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Button } from "@deco/ui/components/button.tsx";
 import { EmptyState } from "../empty-state";
-import { useConnectionActions } from "@/web/hooks/collections/use-connection";
+import {
+  useConnectionActions,
+  useConnections,
+} from "@/web/hooks/collections/use-connection";
 import {
   getWellKnownOpenRouterConnection,
   OPENROUTER_ICON_URL,
   OPENROUTER_MCP_URL,
 } from "@/core/well-known-mcp";
 import { generatePrefixedId } from "@/shared/utils/generate-id";
+import { authClient } from "@/web/lib/auth-client";
 
 interface NoLlmBindingEmptyStateProps {
   title?: string;
   description?: string;
-  orgSlug: string;
-  orgId: string;
-  userId: string;
-  allConnections: Array<{ id: string; connection_url?: string | null }>;
-  onInstallMcpServer: () => void;
+  org: { slug: string; id: string };
 }
 
 /**
@@ -28,18 +28,26 @@ interface NoLlmBindingEmptyStateProps {
 export function NoLlmBindingEmptyState({
   title = "No model provider connected",
   description = "Connect to a model provider to unlock AI-powered features.",
-  orgSlug,
-  orgId,
-  userId,
-  allConnections,
-  onInstallMcpServer,
+  org,
 }: NoLlmBindingEmptyStateProps) {
   const [isInstalling, setIsInstalling] = useState(false);
   const connectionActions = useConnectionActions();
   const navigate = useNavigate();
+  const { data: session } = authClient.useSession();
+  const allConnections = useConnections();
+
+  const userId = session?.user?.id ?? "";
+
+  const handleInstallMcpServer = () => {
+    navigate({
+      to: "/$org/mcps",
+      params: { org: org.slug },
+      search: { action: "create" },
+    });
+  };
 
   const handleInstallOpenRouter = async () => {
-    if (!orgId || !userId) {
+    if (!org.id || !userId) {
       toast.error("Not authenticated");
       return;
     }
@@ -54,7 +62,7 @@ export function NoLlmBindingEmptyState({
       if (existingConnection) {
         navigate({
           to: "/$org/mcps/$connectionId",
-          params: { org: orgSlug, connectionId: existingConnection.id },
+          params: { org: org.slug, connectionId: existingConnection.id },
         });
         return;
       }
@@ -68,7 +76,7 @@ export function NoLlmBindingEmptyState({
 
       navigate({
         to: "/$org/mcps/$connectionId",
-        params: { org: orgSlug, connectionId: result.id },
+        params: { org: org.slug, connectionId: result.id },
       });
     } catch (error) {
       toast.error(
@@ -107,7 +115,7 @@ export function NoLlmBindingEmptyState({
             />
             {isInstalling ? "Installing..." : "Install OpenRouter"}
           </Button>
-          <Button variant="outline" onClick={onInstallMcpServer}>
+          <Button variant="outline" onClick={handleInstallMcpServer}>
             Install Connection
           </Button>
         </>
