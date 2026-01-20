@@ -1,4 +1,4 @@
-import type { GatewayEntity } from "@/tools/gateway/schema";
+import type { VirtualMCPEntity } from "@/tools/virtual-mcp/schema";
 import { IntegrationIcon } from "@/web/components/integration-icon.tsx";
 import { Button } from "@deco/ui/components/button.tsx";
 import { Input } from "@deco/ui/components/input.tsx";
@@ -22,29 +22,29 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import { useGateways as useGatewaysCollection } from "../../hooks/collections/use-gateway";
-import { useCreateGateway } from "../../hooks/use-create-gateway";
+import { useVirtualMCPs as useVirtualMCPsCollection } from "../../hooks/collections/use-virtual-mcp";
+import { useCreateVirtualMCP } from "../../hooks/use-create-virtual-mcp";
 
-export interface GatewayInfo
-  extends Pick<GatewayEntity, "id" | "title" | "description" | "icon"> {
+export interface VirtualMCPInfo
+  extends Pick<VirtualMCPEntity, "id" | "title" | "description" | "icon"> {
   fallbackIcon?: ReactNode; // Icon to use when icon is not available
 }
 
 /**
- * Hook to fetch and map gateways for the selector.
- * Returns only real gateways from the database.
- * When no gateway is selected (null), the default gateway route is used.
+ * Hook to fetch and map virtual MCPs (agents) for the selector.
+ * Returns only real virtual MCPs from the database.
+ * When no virtual MCP is selected (null), the default route is used.
  */
-export function useGateways(): GatewayInfo[] {
-  const gatewaysData = useGatewaysCollection();
-  return gatewaysData ?? [];
+export function useVirtualMCPs(): VirtualMCPInfo[] {
+  const virtualMcpsData = useVirtualMCPsCollection();
+  return virtualMcpsData ?? [];
 }
 
-function GatewayItemContent({
-  gateway,
+function VirtualMCPItemContent({
+  virtualMcp,
   isSelected,
 }: {
-  gateway: GatewayInfo;
+  virtualMcp: VirtualMCPInfo;
   isSelected?: boolean;
 }) {
   return (
@@ -56,10 +56,10 @@ function GatewayItemContent({
     >
       {/* Icon */}
       <IntegrationIcon
-        icon={gateway.icon}
-        name={gateway.title}
+        icon={virtualMcp.icon}
+        name={virtualMcp.title}
         size="sm"
-        fallbackIcon={gateway.fallbackIcon ?? <CpuChip02 />}
+        fallbackIcon={virtualMcp.fallbackIcon ?? <CpuChip02 />}
         className="size-10 rounded-xl border border-stone-200/60 shadow-sm shrink-0"
       />
 
@@ -67,15 +67,15 @@ function GatewayItemContent({
       <div className="flex flex-col flex-1 min-w-0 gap-0.5">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-foreground truncate">
-            {gateway.title}
+            {virtualMcp.title}
           </span>
           {isSelected && (
             <Check size={16} className="text-foreground shrink-0" />
           )}
         </div>
-        {gateway.description && (
+        {virtualMcp.description && (
           <p className="text-xs text-muted-foreground line-clamp-1 leading-relaxed">
-            {gateway.description}
+            {virtualMcp.description}
           </p>
         )}
       </div>
@@ -85,46 +85,46 @@ function GatewayItemContent({
 
 // ---------- Shared Popover Content ----------
 
-export interface GatewayPopoverContentProps {
-  gateways: GatewayInfo[];
-  selectedGatewayId?: string | null;
-  onGatewayChange: (gatewayId: string) => void;
+export interface VirtualMCPPopoverContentProps {
+  virtualMcps: VirtualMCPInfo[];
+  selectedVirtualMcpId?: string | null;
+  onVirtualMcpChange: (virtualMcpId: string) => void;
   searchInputRef?: RefObject<HTMLInputElement | null>;
 }
 
 /**
- * Shared popover content for gateway selection.
- * Contains search input and gateway grid.
- * Used by both GatewaySelector and GatewayBadge.
+ * Shared popover content for virtual MCP (agent) selection.
+ * Contains search input and virtual MCP grid.
+ * Used by both VirtualMCPSelector and VirtualMCPBadge.
  */
-export function GatewayPopoverContent({
-  gateways,
-  selectedGatewayId,
-  onGatewayChange,
+export function VirtualMCPPopoverContent({
+  virtualMcps,
+  selectedVirtualMcpId,
+  onVirtualMcpChange,
   searchInputRef,
-}: GatewayPopoverContentProps) {
+}: VirtualMCPPopoverContentProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const internalRef = useRef<HTMLInputElement>(null);
   const inputRef = searchInputRef ?? internalRef;
-  const { createGateway, isCreating } = useCreateGateway({
+  const { createVirtualMCP, isCreating } = useCreateVirtualMCP({
     navigateOnCreate: true,
   });
 
-  // Filter gateways based on search term
-  const filteredGateways = (() => {
-    if (!searchTerm.trim()) return gateways;
+  // Filter virtual MCPs based on search term
+  const filteredVirtualMcps = (() => {
+    if (!searchTerm.trim()) return virtualMcps;
 
     const search = searchTerm.toLowerCase();
-    return gateways.filter((gateway) => {
+    return virtualMcps.filter((virtualMcp) => {
       return (
-        gateway.title.toLowerCase().includes(search) ||
-        gateway.description?.toLowerCase().includes(search)
+        virtualMcp.title.toLowerCase().includes(search) ||
+        virtualMcp.description?.toLowerCase().includes(search)
       );
     });
   })();
 
-  const handleSelect = (gatewayId: string) => {
-    onGatewayChange(gatewayId);
+  const handleSelect = (virtualMcpId: string) => {
+    onVirtualMcpChange(virtualMcpId);
     setSearchTerm("");
   };
 
@@ -146,7 +146,7 @@ export function GatewayPopoverContent({
             className="flex-1 h-8 text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none p-0"
           />
           <Button
-            onClick={createGateway}
+            onClick={createVirtualMCP}
             variant="outline"
             size="sm"
             className="h-8 px-3 rounded-lg text-sm font-medium shrink-0"
@@ -157,27 +157,27 @@ export function GatewayPopoverContent({
         </div>
       </div>
 
-      {/* Gateway grid */}
+      {/* Virtual MCP grid */}
       <div className="overflow-y-auto p-1.5">
-        {filteredGateways.length > 0 ? (
+        {filteredVirtualMcps.length > 0 ? (
           <div className="grid grid-cols-2 gap-0.5">
-            {filteredGateways.map((gateway) => (
+            {filteredVirtualMcps.map((virtualMcp) => (
               <div
-                key={gateway.id}
+                key={virtualMcp.id}
                 role="button"
                 tabIndex={0}
-                onClick={() => handleSelect(gateway.id)}
+                onClick={() => handleSelect(virtualMcp.id)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    handleSelect(gateway.id);
+                    handleSelect(virtualMcp.id);
                   }
                 }}
                 className="outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl"
               >
-                <GatewayItemContent
-                  gateway={gateway}
-                  isSelected={gateway.id === selectedGatewayId}
+                <VirtualMCPItemContent
+                  virtualMcp={virtualMcp}
+                  isSelected={virtualMcp.id === selectedVirtualMcpId}
                 />
               </div>
             ))}
@@ -192,12 +192,12 @@ export function GatewayPopoverContent({
   );
 }
 
-// ---------- Gateway Selector Component ----------
+// ---------- Virtual MCP Selector Component ----------
 
-export interface GatewaySelectorProps {
-  selectedGatewayId?: string | null;
-  onGatewayChange: (gatewayId: string) => void;
-  gateways?: GatewayInfo[];
+export interface VirtualMCPSelectorProps {
+  selectedVirtualMcpId?: string | null;
+  onVirtualMcpChange: (virtualMcpId: string) => void;
+  virtualMcps?: VirtualMCPInfo[];
   variant?: "borderless" | "bordered";
   className?: string;
   placeholder?: string;
@@ -206,26 +206,26 @@ export interface GatewaySelectorProps {
 }
 
 /**
- * Gateway selector with icon button trigger and tooltip.
- * Opens a popover with searchable gateway list.
- * Used when no gateway is selected (null/default state).
+ * Virtual MCP (agent) selector with icon button trigger and tooltip.
+ * Opens a popover with searchable virtual MCP list.
+ * Used when no virtual MCP is selected (null/default state).
  */
-export function GatewaySelector({
-  selectedGatewayId,
-  onGatewayChange,
-  gateways: gatewaysProp,
+export function VirtualMCPSelector({
+  selectedVirtualMcpId,
+  onVirtualMcpChange,
+  virtualMcps: virtualMcpsProp,
   variant: _variant,
   className,
   placeholder = "Select Agent",
   showTooltip = true,
   disabled = false,
-}: GatewaySelectorProps) {
+}: VirtualMCPSelectorProps) {
   const [open, setOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Use provided gateways or fetch from hook
-  const gatewaysFromHook = useGateways();
-  const gateways = gatewaysProp ?? gatewaysFromHook;
+  // Use provided virtual MCPs or fetch from hook
+  const virtualMcpsFromHook = useVirtualMCPs();
+  const virtualMcps = virtualMcpsProp ?? virtualMcpsFromHook;
 
   // Focus search input when dialog opens
   // oxlint-disable-next-line ban-use-effect/ban-use-effect
@@ -238,12 +238,12 @@ export function GatewaySelector({
     }
   }, [open]);
 
-  const selectedGateway = selectedGatewayId
-    ? gateways.find((g) => g.id === selectedGatewayId)
+  const selectedVirtualMcp = selectedVirtualMcpId
+    ? virtualMcps.find((g) => g.id === selectedVirtualMcpId)
     : null;
 
-  const handleGatewayChange = (gatewayId: string) => {
-    onGatewayChange(gatewayId);
+  const handleVirtualMcpChange = (virtualMcpId: string) => {
+    onVirtualMcpChange(virtualMcpId);
     setOpen(false);
   };
 
@@ -264,12 +264,14 @@ export function GatewaySelector({
       )}
       aria-label={placeholder}
     >
-      {selectedGateway ? (
+      {selectedVirtualMcp ? (
         <IntegrationIcon
-          icon={selectedGateway.icon}
-          name={selectedGateway.title}
+          icon={selectedVirtualMcp.icon}
+          name={selectedVirtualMcp.title}
           size="xs"
-          fallbackIcon={selectedGateway.fallbackIcon ?? <CpuChip02 size={12} />}
+          fallbackIcon={
+            selectedVirtualMcp.fallbackIcon ?? <CpuChip02 size={12} />
+          }
           className="size-5 rounded-md"
         />
       ) : (
@@ -294,7 +296,7 @@ export function GatewaySelector({
           </TooltipTrigger>
           {showTooltip && !open && (
             <TooltipContent side="top" className="text-xs">
-              {selectedGateway?.title ?? "Choose an agent to chat with"}
+              {selectedVirtualMcp?.title ?? "Choose an agent to chat with"}
             </TooltipContent>
           )}
         </Tooltip>
@@ -305,10 +307,10 @@ export function GatewaySelector({
         side="top"
         sideOffset={8}
       >
-        <GatewayPopoverContent
-          gateways={gateways}
-          selectedGatewayId={selectedGatewayId}
-          onGatewayChange={handleGatewayChange}
+        <VirtualMCPPopoverContent
+          virtualMcps={virtualMcps}
+          selectedVirtualMcpId={selectedVirtualMcpId}
+          onVirtualMcpChange={handleVirtualMcpChange}
           searchInputRef={searchInputRef}
         />
       </PopoverContent>
