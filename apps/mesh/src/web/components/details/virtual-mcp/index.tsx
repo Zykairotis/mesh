@@ -5,7 +5,6 @@ import { ResourceSetSelector } from "@/web/components/virtual-mcp/resource-selec
 import { IntegrationIcon } from "@/web/components/integration-icon.tsx";
 import { PinToSidebarButton } from "@/web/components/pin-to-sidebar-button";
 import { ToolSetSelector } from "@/web/components/tool-set-selector.tsx";
-import { useVirtualMCPSystemPrompt } from "@/web/hooks/use-virtual-mcp-system-prompt";
 import {
   createMCPClient,
   useConnections,
@@ -104,6 +103,7 @@ const virtualMcpFormSchema = VirtualMCPEntitySchema.pick({
   description: true,
   status: true,
   tool_selection_mode: true,
+  metadata: true,
 }).extend({
   title: z.string().min(1, "Name is required").max(255),
 });
@@ -382,7 +382,7 @@ function VirtualMCPShareModal({
   };
 
   // Build URL with mode query parameter
-  // Virtual MCPs are accessed via the virtual-mcp endpoint (or gateway for backward compat)
+  // Virtual MCPs (agents) are accessed via the virtual-mcp endpoint
   const virtualMcpUrl = new URL(
     `/mcp/virtual-mcp/${virtualMcp.id}`,
     window.location.origin,
@@ -551,15 +551,10 @@ function VirtualMCPShareModal({
 function VirtualMCPSettingsTab({
   form,
   icon,
-  virtualMcpId,
 }: {
   form: ReturnType<typeof useForm<VirtualMCPFormData>>;
   icon?: string | null;
-  virtualMcpId: string;
 }) {
-  const [systemPrompt, setSystemPrompt] =
-    useVirtualMCPSystemPrompt(virtualMcpId);
-
   return (
     <div className="flex flex-col h-full overflow-auto">
       <Form {...form}>
@@ -707,19 +702,37 @@ function VirtualMCPSettingsTab({
 
           {/* System Prompt section */}
           <div className="flex flex-col gap-3 p-5">
-            <div>
-              <h4 className="text-sm font-medium text-foreground mb-1">
-                System Prompt
-              </h4>
-              <p className="text-xs text-muted-foreground">
-                Stored locally for now
-              </p>
-            </div>
-            <Textarea
-              value={systemPrompt}
-              onChange={(e) => setSystemPrompt(e.target.value)}
-              placeholder="Enter system prompt instructions..."
-              className="min-h-[240px] resize-none text-sm leading-relaxed"
+            <FormField
+              control={form.control}
+              name="metadata"
+              render={({ field }) => (
+                <FormItem>
+                  <div>
+                    <FormLabel className="text-sm font-medium text-foreground mb-1">
+                      Instructions
+                    </FormLabel>
+                    <p className="text-xs text-muted-foreground">
+                      Define the agent's role, capabilities, and behavior to
+                      guide how it interprets requests, uses available tools,
+                      and responds to users.
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Textarea
+                      value={field.value?.instructions ?? ""}
+                      onChange={(e) =>
+                        field.onChange({
+                          ...(field.value ?? {}),
+                          instructions: e.target.value || undefined,
+                        })
+                      }
+                      placeholder="You are a helpful assistant that specializes in customer support. Your role is to help users resolve issues and answer questions..."
+                      className="min-h-[240px] resize-none text-sm leading-relaxed"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
           </div>
         </div>
@@ -888,6 +901,7 @@ function VirtualMCPInspectorViewWithData({
       description: virtualMcp.description,
       status: virtualMcp.status,
       tool_selection_mode: virtualMcp.tool_selection_mode ?? "inclusion",
+      metadata: virtualMcp.metadata ?? { instructions: "" },
     },
   });
 
@@ -911,6 +925,7 @@ function VirtualMCPInspectorViewWithData({
         description: formData.description,
         status: formData.status,
         tool_selection_mode: formData.tool_selection_mode,
+        metadata: formData.metadata,
         connections: newConnections,
       };
 
@@ -936,6 +951,7 @@ function VirtualMCPInspectorViewWithData({
       description: virtualMcp.description,
       status: virtualMcp.status,
       tool_selection_mode: virtualMcp.tool_selection_mode ?? "inclusion",
+      metadata: virtualMcp.metadata ?? { instructions: "" },
     });
 
     // Reset selections to original virtual MCP values
@@ -1073,11 +1089,7 @@ function VirtualMCPInspectorViewWithData({
                 }
               >
                 {activeTabId === "settings" ? (
-                  <VirtualMCPSettingsTab
-                    form={form}
-                    icon={virtualMcp.icon}
-                    virtualMcpId={virtualMcpId}
-                  />
+                  <VirtualMCPSettingsTab form={form} icon={virtualMcp.icon} />
                 ) : activeTabId === "tools" ? (
                   <ToolSetSelector
                     toolSet={toolSet}

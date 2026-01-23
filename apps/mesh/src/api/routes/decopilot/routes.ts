@@ -137,6 +137,12 @@ app.post("/:org/decopilot/stream", async (c) => {
     abortSignal.addEventListener("abort", abortHandler, { once: true });
     const modelHasVision = model.capabilities?.vision ?? true;
 
+    // Get server instructions if available (for virtual MCP agents)
+    const serverInstructions = mcpClient.getInstructions();
+
+    // Build system prompt combining platform instructions with agent-specific instructions
+    const systemPrompt = DECOPILOT_BASE_PROMPT(serverInstructions);
+
     // 3. Process conversation
     const { memory, systemMessages, prunedMessages, originalMessages } =
       await processConversation(ctx, {
@@ -144,7 +150,7 @@ app.post("/:org/decopilot/stream", async (c) => {
         threadId,
         windowSize,
         messages,
-        systemPrompts: [DECOPILOT_BASE_PROMPT],
+        systemPrompts: [systemPrompt],
         removeFileParts: !modelHasVision,
       });
 
