@@ -137,6 +137,16 @@ export const StepSchema = z.object({
     "Optional JSON Schema describing the expected output of the step.",
   ),
   config: StepConfigSchema.optional().describe("Retry and timeout settings"),
+  forEach: z
+    .object({
+      ref: z.string().describe("@ ref to the step to iterate over"),
+      concurrency: z
+        .number()
+        .optional()
+        .default(1)
+        .describe("max parallel iterations. default is 1 (sequential)"),
+    })
+    .optional(),
 });
 
 export type Step = z.infer<typeof StepSchema>;
@@ -216,6 +226,10 @@ export const WorkflowExecutionSchema = BaseCollectionEntitySchema.extend({
     })
     .optional()
     .describe("Names of the steps that were completed and their status"),
+  running_steps: z
+    .array(z.string())
+    .optional()
+    .describe("Names of the steps that are currently running"),
 });
 export type WorkflowExecution = z.infer<typeof WorkflowExecutionSchema>;
 
