@@ -10,6 +10,7 @@
 import { getDb } from "@/database";
 import { getSettings } from "../settings";
 import { userInfo } from "os";
+import { sql } from "kysely";
 import { auth } from "./index";
 
 /**
@@ -34,6 +35,24 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+function isDuplicateUserError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    /already exists|use another email|USER_ALREADY_EXISTS/i.test(error.message)
+  );
+}
+
+function getLocalAdminEmail(): string {
+  const localPart =
+    getLocalUserName()
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "") || "local";
+  return `${localPart}@localhost.mesh`;
+}
+
 /**
  * Check if the database already has users.
  * Returns true if the database is fresh (no users).
@@ -44,7 +63,8 @@ async function isDatabaseFresh(): Promise<boolean> {
     .selectFrom("user")
     .select(database.db.fn.countAll().as("count"))
     .executeTakeFirst();
-  return Number(result?.count ?? 0) === 0;
+  const userCount = Number(result?.count ?? 0);
+  return userCount === 0;
 }
 
 /**
@@ -59,24 +79,41 @@ async function isDatabaseFresh(): Promise<boolean> {
 export async function seedLocalMode(): Promise<boolean> {
   const fresh = await isDatabaseFresh();
   if (!fresh) {
-    return false;
+    const existingAdminUser = await getLocalAdminUser();
+    if (existingAdminUser) {
+      return false;
+    }
   }
 
   const username = getLocalUserName();
-  const email = `${username}@localhost.mesh`;
+  const email = getLocalAdminEmail();
   const displayName = capitalize(username);
   const password = await getLocalAdminPassword();
 
   // Create admin user via Better Auth signup.
   // The databaseHooks.user.create.after hook in auth/index.ts will
   // automatically create a default organization for this user.
-  const signUpResult = await auth.api.signUpEmail({
-    body: {
-      email,
-      password,
-      name: displayName,
-    },
-  });
+  let signUpResult;
+  try {
+    signUpResult = await auth.api.signUpEmail({
+      body: {
+        email,
+        password,
+        name: displayName,
+      },
+    });
+  } catch (error) {
+    if (!isDuplicateUserError(error)) {
+      throw error;
+    }
+
+    const existingAdminUser = await getLocalAdminUser();
+    if (existingAdminUser) {
+      return false;
+    }
+
+    throw error;
+  }
 
   if (!signUpResult?.user?.id) {
     throw new Error("Failed to create local admin user");
@@ -120,10 +157,10 @@ export async function seedLocalMode(): Promise<boolean> {
  */
 export async function getLocalAdminUser() {
   const database = getDb();
-  const email = `${getLocalUserName()}@localhost.mesh`;
+  const email = getLocalAdminEmail();
   return database.db
     .selectFrom("user")
-    .where("email", "=", email)
+    .where(sql`lower(email)`, "=", email)
     .selectAll()
     .executeTakeFirst();
 }

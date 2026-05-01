@@ -146,11 +146,15 @@ app.post("/local-session", async (c) => {
 
   try {
     // Wait for local-mode seeding to complete before attempting login
-    const { waitForSeed } = await import("@/auth/local-mode");
+    const { waitForSeed, seedLocalMode } = await import("@/auth/local-mode");
     await waitForSeed();
 
     const { auth } = await import("../../auth");
-    const adminUser = await getLocalAdminUser();
+    let adminUser = await getLocalAdminUser();
+    if (!adminUser) {
+      await seedLocalMode();
+      adminUser = await getLocalAdminUser();
+    }
     if (!adminUser) {
       return c.json(
         { success: false, error: "Local admin user not found" },
